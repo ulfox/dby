@@ -69,8 +69,8 @@ key-1:
 	key-3: "2"
 ```
 
-And we query for key-3, then we will get back "2" and not "1"
-since key-3 appears first on a higher layer with a value of 2
+And we query for `key-3`, then we will get back **"2"** and not **"1"**
+since `key-3` appears first on a higher layer with a value of **2**
 
 #### Search for keys
 
@@ -106,9 +106,52 @@ key-1:
 Then to get someValue, issue
 
 ```
-	keyPath, exists := state.GetPath("key-1.key-2.key-3")
-	if !exists {
-		logger.Fatalf("Could not find key %s", "key-3")
+	keyPath, err := state.GetPath("key-1.key-2.key-3")
+	if err != nil {
+		logger.Fatalf(err.Error())
+	}
+	logger.Info(keyPath)
+```
+
+#### Query Path with Arrays
+
+We can also query paths that have arrays.
+
+##### Without trailing array
+
+```
+key-1:
+	key-2:
+		- key-3: 
+			key-4: value-1
+```
+
+To get the value of `key-4`, issue
+
+```
+	keyPath, err := state.GetPath("key-1.key-2.key-3.[0].key-4")
+	if err != nil {
+		logger.Fatalf(err.Error())
+	}
+	logger.Info(keyPath)
+```
+
+##### With trailing array
+
+```
+key-1:
+	key-2:
+		- value-1
+		- value-2
+		- value-3
+```
+
+To get the first index of `key-2`, issue
+
+```
+	keyPath, err := state.GetPath("key-1.key-2.[0]")
+	if err != nil {
+		logger.Fatalf(err.Error())
 	}
 	logger.Info(keyPath)
 ```
