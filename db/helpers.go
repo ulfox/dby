@@ -17,11 +17,11 @@ func getIndex(k string) (int, error) {
 		}
 		return intVar, nil
 	}
-	return 0, errors.New(NotAnIndex)
+	return 0, errors.New(notAnIndex)
 }
 
 // Some common objects
-func getObjectType(o interface{}) ObjectType {
+func getObjectType(o interface{}) objectType {
 	_, isMap := o.(map[interface{}]interface{})
 	if isMap {
 		return 1
@@ -72,7 +72,7 @@ func getObjectType(o interface{}) ObjectType {
 		return 10
 	}
 
-	return UnknownObj
+	return unknownObj
 }
 
 func copyMap(o interface{}) (interface{}, error) {
@@ -100,7 +100,7 @@ func interfaceToMap(o interface{}) (map[interface{}]interface{}, error) {
 	obj, isMap := o.(map[interface{}]interface{})
 	if !isMap {
 		if o != nil {
-			return nil, errors.New(NotAMap)
+			return nil, errors.New(notAMap)
 		}
 		obj = make(map[interface{}]interface{})
 	}
@@ -130,7 +130,7 @@ func fileExists(filepath string) (bool, error) {
 	if os.IsNotExist(err) {
 		return false, nil
 	} else if f.IsDir() {
-		return false, errors.New(DictNotFile)
+		return false, errors.New(dictNotFile)
 	}
 
 	return true, nil

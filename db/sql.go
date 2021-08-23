@@ -8,31 +8,37 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type cache struct {
+// Cache for easily sharing state between map operations and methods
+// v1 & v2 are common interface{} placeholders while keys is used by
+// path discovery methods to keep track and derive the right path.
+type Cache struct {
 	v1   interface{}
 	v2   map[interface{}]interface{}
 	keys []string
 }
 
+// Query hosts results from SQL methods
 type Query struct {
 	KeysFound []string
 	Results   []interface{}
 }
 
+// SQL is the core struct for working with maps.
 type SQL struct {
 	Query Query
-	cache cache
+	cache Cache
 }
 
+// Clear deletes all objects from Query and Cache structures
 func (d *SQL) Clear() *SQL {
 	d.Query = Query{}
-	d.cache = cache{}
+	d.cache = Cache{}
 
 	return d
 }
 
 func (d *SQL) clearCache() *SQL {
-	d.cache = cache{}
+	d.cache = Cache{}
 	return d
 }
 
@@ -86,8 +92,8 @@ func (d *SQL) getArrayObject(k string, o interface{}) (interface{}, bool) {
 }
 
 func (d *SQL) getFromIndex(k []string, o interface{}) (interface{}, error) {
-	if getObjectType(o) != ArrayObj {
-		return nil, errors.New(NotArrayObj)
+	if getObjectType(o) != arrayObj {
+		return nil, errors.New(notArrayObj)
 	}
 
 	i, err := getIndex(k[0])
@@ -96,7 +102,7 @@ func (d *SQL) getFromIndex(k []string, o interface{}) (interface{}, error) {
 	}
 
 	if i > len(o.([]interface{}))-1 {
-		return nil, errors.New(ArrayOutOfRange)
+		return nil, errors.New(arrayOutOfRange)
 	}
 
 	if len(k) > 1 {
@@ -121,12 +127,11 @@ func (d *SQL) getPath(k []string, o interface{}) (interface{}, error) {
 					return objFinal, err
 				}
 				return objFinal, nil
-			} else {
-				return thisObj, nil
 			}
+			return thisObj, nil
 		}
 	}
-	return nil, errors.New(KeyDoesNotExist)
+	return nil, errors.New(keyDoesNotExist)
 }
 
 func (d *SQL) delPath(k string, o interface{}) error {
@@ -193,7 +198,7 @@ func (d *SQL) getFirst(k string, o interface{}) (interface{}, error) {
 		return obj, nil
 	}
 
-	return nil, errors.New(KeyDoesNotExist)
+	return nil, errors.New(keyDoesNotExist)
 }
 
 func (d *SQL) upsertRecursive(k []string, o, v interface{}) error {
@@ -214,11 +219,11 @@ func (d *SQL) upsertRecursive(k []string, o, v interface{}) error {
 			} else {
 				t := getObjectType(thisObj)
 				switch t {
-				case MapObj:
+				case mapObj:
 					for kn := range thisObj.(map[interface{}]interface{}) {
 						delete(thisObj.(map[interface{}]interface{}), kn)
 					}
-				case ArrayObj:
+				case arrayObj:
 					thisObj = nil
 				}
 
@@ -259,7 +264,7 @@ func (d *SQL) mergeDBs(path string, o interface{}) error {
 	}
 
 	if !ok {
-		return errors.New(FileNotExist)
+		return errors.New(fileNotExist)
 	}
 
 	f, err := ioutil.ReadFile(path)

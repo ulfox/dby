@@ -17,6 +17,7 @@ type Storage struct {
 	Path string
 }
 
+// NewStorageFactory for creating a new Storage struct.
 func NewStorageFactory(path string) (*Storage, error) {
 	state := &Storage{
 		SQL:  SQL{},
@@ -50,6 +51,8 @@ func NewStorageFactory(path string) (*Storage, error) {
 	return state, nil
 }
 
+// Read for reading the local yaml file and importing it
+// in memory
 func (i *Storage) Read() error {
 	f, err := ioutil.ReadFile(i.Path)
 	if err != nil {
@@ -62,6 +65,7 @@ func (i *Storage) Read() error {
 	return yaml.Unmarshal(f, &i.Data)
 }
 
+// Write for writing memory content to the local yaml file
 func (i *Storage) Write() error {
 	i.Lock()
 	defer i.Unlock()
