@@ -129,7 +129,7 @@ key-1:
 To get the value of `key-4`, issue
 
 ```
-	keyPath, err := state.GetPath("key-1.key-2.key-3.[0].key-4")
+	keyPath, err := state.GetPath("key-1.key-2.[0].key-3.key-4")
 	if err != nil {
 		logger.Fatalf(err.Error())
 	}
