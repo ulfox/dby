@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/likexian/gokit/assert"
@@ -25,7 +26,50 @@ func TestUpsert(t *testing.T) {
 			"key-2": "value-2",
 		},
 	)
+	assert.Equal(t, err, nil)
 
+	err = state.Upsert(
+		"path-1.sub-path-1",
+		map[string][]string{
+			"sub-path-2": {"value-1", "value-2"},
+			"sub-path-3": {"value-3", "value-4"},
+		},
+	)
+	assert.Equal(t, err, nil)
+
+	err = state.Upsert(
+		"path-2",
+		[]map[string][]string{
+			{
+				"sub-path-1": {"value-1", "value-2"},
+			},
+			{
+				"sub-path-2": {"value-3", "value-4"},
+			},
+		},
+	)
+	assert.Equal(t, err, nil)
+
+	err = state.Upsert(
+		"path-3",
+		[]map[string]string{
+			{
+				"sub-path-1": "value-1",
+			},
+			{
+				"sub-path-2": "value-2",
+			},
+		},
+	)
+	assert.Equal(t, err, nil)
+
+	err = state.Upsert(
+		"path-4",
+		map[string]int{
+			"sub-path-1": 0,
+			"sub-path-2": 1,
+		},
+	)
 	assert.Equal(t, err, nil)
 
 	f, err := ioutil.ReadFile(path)
@@ -41,9 +85,9 @@ func TestUpsert(t *testing.T) {
 		{"key-2", "value-2"},
 	}
 
+	data, ok := state.Data.(map[interface{}]interface{})
+	assert.Equal(t, ok, true)
 	for _, testCase := range testUpsert {
-		data, ok := state.Data.(map[interface{}]interface{})
-		assert.Equal(t, ok, true)
 
 		assert.Equal(
 			t,
@@ -52,6 +96,44 @@ func TestUpsert(t *testing.T) {
 			fmt.Sprintf("Expected: %v", testCase.Value),
 		)
 	}
+
+	assert.Equal(
+		t,
+		data["path-2"].([]interface{})[0].(map[interface{}]interface{})["sub-path-1"].([]interface{})[0],
+		"value-1",
+	)
+	assert.Equal(
+		t,
+		data["path-2"].([]interface{})[0].(map[interface{}]interface{})["sub-path-1"].([]interface{})[1],
+		"value-2",
+	)
+	assert.Equal(
+		t,
+		data["path-2"].([]interface{})[1].(map[interface{}]interface{})["sub-path-2"].([]interface{})[0],
+		"value-3",
+	)
+	assert.Equal(
+		t,
+		data["path-2"].([]interface{})[1].(map[interface{}]interface{})["sub-path-2"].([]interface{})[1],
+		"value-4",
+	)
+
+	assert.Equal(
+		t,
+		data["path-3"].([]interface{})[0].(map[interface{}]interface{})["sub-path-1"],
+		"value-1",
+	)
+	assert.Equal(
+		t,
+		data["path-3"].([]interface{})[1].(map[interface{}]interface{})["sub-path-2"],
+		"value-2",
+	)
+
+	assert.Equal(t, data["path-4"].(map[interface{}]interface{})["sub-path-1"], 0)
+	assert.Equal(t, data["path-4"].(map[interface{}]interface{})["sub-path-2"], 1)
+
+	err = os.Remove(path)
+	assert.Equal(t, err, nil)
 }
 
 // TestGetSingle run unit tests on GetSingle key
@@ -75,6 +157,31 @@ func TestGetSingle(t *testing.T) {
 	val, err := state.GetFirst("key-1")
 	assert.Equal(t, err, nil)
 	assert.Equal(t, val, "value-1")
+
+	val, err = state.GetFirst("key-2")
+	assert.Equal(t, err, nil)
+	assert.Equal(t, val, "value-2")
+
+	err = state.Upsert(
+		"path-1",
+		map[string][]string{
+			"key-3": {"value-1"},
+			"key-4": {"value-2"},
+		},
+	)
+
+	assert.Equal(t, err, nil)
+
+	val, err = state.GetFirst("key-3")
+	assert.Equal(t, err, nil)
+	assert.Equal(t, val, []interface{}{"value-1"})
+
+	val, err = state.GetFirst("key-4")
+	assert.Equal(t, err, nil)
+	assert.Equal(t, val, []interface{}{"value-2"})
+
+	err = os.Remove(path)
+	assert.Equal(t, err, nil)
 }
 
 // TestGetPath run unit tests on Get object from path
@@ -134,6 +241,17 @@ func TestGetPath(t *testing.T) {
 	val, err = state.GetPath("array.[1]")
 	assert.Equal(t, err, nil)
 	assert.Equal(t, val, "value-2")
+
+	val, err = state.GetPath("array.[2]")
+	assert.NotEqual(t, err, nil)
+	assert.Equal(t, val, nil)
+
+	val, err = state.GetPath("some.[2].array")
+	assert.NotEqual(t, err, nil)
+	assert.Equal(t, val, nil)
+
+	err = os.Remove(path)
+	assert.Equal(t, err, nil)
 }
 
 // TestDelete run unit tests for deleting objects
@@ -150,6 +268,8 @@ func TestDelete(t *testing.T) {
 		map[string]string{
 			"key-1": "value-1",
 			"key-2": "value-2",
+			"key-3": "value-3",
+			"key-4": "value-4",
 		},
 	)
 
@@ -161,6 +281,12 @@ func TestDelete(t *testing.T) {
 	val, err := state.GetPath("test.path.key-1")
 	assert.NotEqual(t, err, nil)
 	assert.Equal(t, val, nil)
+
+	err = state.Delete("test.path.key-12")
+	assert.NotEqual(t, err, nil)
+
+	err = os.Remove(path)
+	assert.Equal(t, err, nil)
 }
 
 // TestGet run unit tests for searching for keys
@@ -185,13 +311,25 @@ func TestGet(t *testing.T) {
 
 	assert.Equal(t, err, nil)
 
+	err = state.Upsert(
+		"path-1",
+		map[string][]string{
+			"key-1": {"value-1"},
+			"key-2": {"value-2"},
+		},
+	)
+
+	assert.Equal(t, err, nil)
+
 	keys, err := state.Get("key-1")
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(keys), 2)
+	assert.Equal(t, len(keys), 3)
 
 	for _, j := range keys {
 		_, err = state.GetPath(j)
 		assert.Equal(t, err, nil)
 	}
 
+	err = os.Remove(path)
+	assert.Equal(t, err, nil)
 }

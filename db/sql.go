@@ -26,30 +26,30 @@ type Query struct {
 // SQL is the core struct for working with maps.
 type SQL struct {
 	Query Query
-	cache Cache
+	Cache Cache
 }
 
 // Clear deletes all objects from Query and Cache structures
 func (d *SQL) Clear() *SQL {
 	d.Query = Query{}
-	d.cache = Cache{}
+	d.Cache = Cache{}
 
 	return d
 }
 
 func (d *SQL) clearCache() *SQL {
-	d.cache = Cache{}
+	d.Cache = Cache{}
 	return d
 }
 
 func (d *SQL) dropLastKey() {
-	if len(d.cache.keys) > 0 {
-		d.cache.keys = d.cache.keys[:len(d.cache.keys)-1]
+	if len(d.Cache.keys) > 0 {
+		d.Cache.keys = d.Cache.keys[:len(d.Cache.keys)-1]
 	}
 }
 
 func (d *SQL) dropKeys() {
-	d.cache.keys = []string{}
+	d.Cache.keys = []string{}
 }
 
 func (d *SQL) getObj(k string, o interface{}) (interface{}, bool) {
@@ -59,7 +59,7 @@ func (d *SQL) getObj(k string, o interface{}) (interface{}, bool) {
 	}
 
 	for thisKey, thisObj := range obj {
-		d.cache.keys = append(d.cache.keys, thisKey.(string))
+		d.Cache.keys = append(d.Cache.keys, thisKey.(string))
 		if thisKey == k {
 			return thisObj, true
 		}
@@ -120,7 +120,7 @@ func (d *SQL) getPath(k []string, o interface{}) (interface{}, error) {
 
 	for thisKey, thisObj := range obj {
 		if thisKey == k[0] {
-			d.cache.keys = append(d.cache.keys, k[0])
+			d.Cache.keys = append(d.Cache.keys, k[0])
 			if len(k) > 1 {
 				objFinal, err := d.getPath(k[1:], thisObj)
 				if err != nil {
@@ -152,11 +152,17 @@ func (d *SQL) delPath(k string, o interface{}) error {
 		}
 
 		d.dropKeys()
+		deleted := false
 		for kn := range obj.(map[interface{}]interface{}) {
 			if kn.(string) == keys[len(keys)-1] {
 				delete(obj.(map[interface{}]interface{}), kn)
+				deleted = true
 				break
 			}
+		}
+
+		if !deleted {
+			return errors.New(keyDoesNotExist)
 		}
 	}
 
@@ -168,17 +174,17 @@ func (d *SQL) get(k string, o interface{}) ([]string, error) {
 	var key string
 
 	d.clearCache()
-	d.cache.v1, err = copyMap(o)
+	d.Cache.v1, err = copyMap(o)
 	if err != nil {
 		return nil, err
 	}
 
 	for {
-		_, found := d.getObj(k, d.cache.v1)
+		_, found := d.getObj(k, d.Cache.v1)
 		if found {
-			key = strings.Join(d.cache.keys, ".")
+			key = strings.Join(d.Cache.keys, ".")
 			d.Query.KeysFound = append(d.Query.KeysFound, key)
-			err := d.delPath(key, d.cache.v1)
+			err := d.delPath(key, d.Cache.v1)
 			if err != nil {
 				return d.Query.KeysFound, err
 			}
