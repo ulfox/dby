@@ -2,13 +2,15 @@ package db
 
 import (
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // Upsert is a SQL wrapper for adding/updating map structures
 func (s *Storage) Upsert(k string, i interface{}) error {
 	err := s.SQL.upsert(k, i, s.Data)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Upsert")
 	}
 
 	return s.stateReload()
@@ -20,7 +22,7 @@ func (s *Storage) Upsert(k string, i interface{}) error {
 func (s *Storage) GetFirst(k string) (interface{}, error) {
 	obj, err := s.SQL.getFirst(k, s.Data)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "GetFirst")
 	}
 
 	return obj, nil
@@ -39,7 +41,7 @@ func (s *Storage) GetFirst(k string) (interface{}, error) {
 func (s *Storage) Get(k string) ([]string, error) {
 	obj, err := s.SQL.get(k, s.Data)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Get")
 	}
 
 	return obj, nil
@@ -56,7 +58,7 @@ func (s *Storage) GetPath(k string) (interface{}, error) {
 	keys := strings.Split(k, ".")
 	obj, err := s.SQL.getPath(keys, s.Data)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "GetPath")
 	}
 
 	return obj, nil
@@ -69,7 +71,7 @@ func (s *Storage) GetPath(k string) (interface{}, error) {
 func (s *Storage) Delete(k string) error {
 	err := s.SQL.delPath(k, s.Data)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Delete")
 	}
 
 	return s.Write()
@@ -80,7 +82,7 @@ func (s *Storage) Delete(k string) error {
 func (s *Storage) MergeDBs(path string) error {
 	err := s.SQL.mergeDBs(path, s.Data)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "MergeDBs")
 	}
 
 	return s.Write()
