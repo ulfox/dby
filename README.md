@@ -158,11 +158,11 @@ To get the first index of `key-2`, issue
 
 ### Delete Key By Path
 
-To delete a single key for a given path, e.g. key-3 
+To delete a single key for a given path, e.g. key-2
 from the example above, issue
 
 ```
-	err = state.Delete("some.path.key-1")
+	err = state.Delete("key-1.key-2")
 	if err != nil {
 		logger.Fatalf(err.Error())
 	}
