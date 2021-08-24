@@ -1,10 +1,10 @@
 package db
 
 import (
-	"errors"
 	"io/ioutil"
 	"strings"
 
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 
@@ -26,30 +26,30 @@ type Query struct {
 // SQL is the core struct for working with maps.
 type SQL struct {
 	Query Query
-	cache Cache
+	Cache Cache
 }
 
 // Clear deletes all objects from Query and Cache structures
 func (d *SQL) Clear() *SQL {
 	d.Query = Query{}
-	d.cache = Cache{}
+	d.Cache = Cache{}
 
 	return d
 }
 
 func (d *SQL) clearCache() *SQL {
-	d.cache = Cache{}
+	d.Cache = Cache{}
 	return d
 }
 
 func (d *SQL) dropLastKey() {
-	if len(d.cache.keys) > 0 {
-		d.cache.keys = d.cache.keys[:len(d.cache.keys)-1]
+	if len(d.Cache.keys) > 0 {
+		d.Cache.keys = d.Cache.keys[:len(d.Cache.keys)-1]
 	}
 }
 
 func (d *SQL) dropKeys() {
-	d.cache.keys = []string{}
+	d.Cache.keys = []string{}
 }
 
 func (d *SQL) getObj(k string, o interface{}) (interface{}, bool) {
@@ -59,7 +59,7 @@ func (d *SQL) getObj(k string, o interface{}) (interface{}, bool) {
 	}
 
 	for thisKey, thisObj := range obj {
-		d.cache.keys = append(d.cache.keys, thisKey.(string))
+		d.Cache.keys = append(d.Cache.keys, thisKey.(string))
 		if thisKey == k {
 			return thisObj, true
 		}
@@ -93,16 +93,16 @@ func (d *SQL) getArrayObject(k string, o interface{}) (interface{}, bool) {
 
 func (d *SQL) getFromIndex(k []string, o interface{}) (interface{}, error) {
 	if getObjectType(o) != arrayObj {
-		return nil, errors.New(notArrayObj)
+		return nil, errors.Wrap(errors.New(notArrayObj), "getFromIndex")
 	}
 
 	i, err := getIndex(k[0])
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "getFromIndex")
 	}
 
 	if i > len(o.([]interface{}))-1 {
-		return nil, errors.New(arrayOutOfRange)
+		return nil, errors.Wrap(errors.New(arrayOutOfRange), "getFromIndex")
 	}
 
 	if len(k) > 1 {
@@ -120,18 +120,18 @@ func (d *SQL) getPath(k []string, o interface{}) (interface{}, error) {
 
 	for thisKey, thisObj := range obj {
 		if thisKey == k[0] {
-			d.cache.keys = append(d.cache.keys, k[0])
+			d.Cache.keys = append(d.Cache.keys, k[0])
 			if len(k) > 1 {
 				objFinal, err := d.getPath(k[1:], thisObj)
 				if err != nil {
-					return objFinal, err
+					return objFinal, errors.Wrap(err, "getPath")
 				}
 				return objFinal, nil
 			}
 			return thisObj, nil
 		}
 	}
-	return nil, errors.New(keyDoesNotExist)
+	return nil, errors.Wrap(errors.New(keyDoesNotExist), "getPath")
 }
 
 func (d *SQL) delPath(k string, o interface{}) error {
@@ -148,15 +148,21 @@ func (d *SQL) delPath(k string, o interface{}) error {
 		d.dropKeys()
 		obj, err := d.getPath(keys[:len(keys)-1], o)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "delPath")
 		}
 
 		d.dropKeys()
+		deleted := false
 		for kn := range obj.(map[interface{}]interface{}) {
 			if kn.(string) == keys[len(keys)-1] {
 				delete(obj.(map[interface{}]interface{}), kn)
+				deleted = true
 				break
 			}
+		}
+
+		if !deleted {
+			return errors.Wrap(errors.New(keyDoesNotExist), "delPath")
 		}
 	}
 
@@ -168,19 +174,19 @@ func (d *SQL) get(k string, o interface{}) ([]string, error) {
 	var key string
 
 	d.clearCache()
-	d.cache.v1, err = copyMap(o)
+	d.Cache.v1, err = copyMap(o)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "get")
 	}
 
 	for {
-		_, found := d.getObj(k, d.cache.v1)
+		_, found := d.getObj(k, d.Cache.v1)
 		if found {
-			key = strings.Join(d.cache.keys, ".")
+			key = strings.Join(d.Cache.keys, ".")
 			d.Query.KeysFound = append(d.Query.KeysFound, key)
-			err := d.delPath(key, d.cache.v1)
+			err := d.delPath(key, d.Cache.v1)
 			if err != nil {
-				return d.Query.KeysFound, err
+				return d.Query.KeysFound, errors.Wrap(err, "get")
 			}
 			d.dropKeys()
 		} else {
@@ -198,7 +204,7 @@ func (d *SQL) getFirst(k string, o interface{}) (interface{}, error) {
 		return obj, nil
 	}
 
-	return nil, errors.New(keyDoesNotExist)
+	return nil, errors.Wrap(errors.New(keyDoesNotExist), "getFirst")
 }
 
 func (d *SQL) upsertRecursive(k []string, o, v interface{}) error {
@@ -206,7 +212,7 @@ func (d *SQL) upsertRecursive(k []string, o, v interface{}) error {
 
 	obj, err := interfaceToMap(o)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "upsertRecursive")
 	}
 
 	for thisKey, thisObj := range obj {
@@ -214,7 +220,7 @@ func (d *SQL) upsertRecursive(k []string, o, v interface{}) error {
 			if len(k) > 1 {
 				err := d.upsertRecursive(k[1:], thisObj, v)
 				if err != nil {
-					return err
+					return errors.Wrap(err, "upsertRecursive")
 				}
 			} else {
 				t := getObjectType(thisObj)
@@ -240,7 +246,7 @@ func (d *SQL) upsertRecursive(k []string, o, v interface{}) error {
 		if len(k) > 1 {
 			err := d.upsertRecursive(k[1:], obj[k[0]], v)
 			if err != nil {
-				return err
+				return errors.Wrap(err, "upsertRecursive")
 			}
 		} else {
 			obj[k[0]] = v
@@ -252,7 +258,7 @@ func (d *SQL) upsertRecursive(k []string, o, v interface{}) error {
 
 func (d *SQL) upsert(k string, i, o interface{}) error {
 	keys := strings.Split(k, ".")
-	return d.upsertRecursive(keys, o, i)
+	return errors.Wrap(d.upsertRecursive(keys, o, i), "upsert")
 }
 
 func (d *SQL) mergeDBs(path string, o interface{}) error {
@@ -260,29 +266,29 @@ func (d *SQL) mergeDBs(path string, o interface{}) error {
 
 	ok, err := fileExists(path)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "mergeDBs")
 	}
 
 	if !ok {
-		return errors.New(fileNotExist)
+		return errors.Wrap(errors.New(fileNotExist), "mergeDBs")
 	}
 
 	f, err := ioutil.ReadFile(path)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "mergeDBs")
 	}
 
 	yaml.Unmarshal(f, &dataNew)
 
 	obj, err := interfaceToMap(dataNew)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "mergeDBs")
 	}
 
 	for kn, vn := range obj {
 		err = d.upsert(kn.(string), vn, o)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "mergeDBs")
 		}
 	}
 	return nil

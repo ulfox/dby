@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 
@@ -27,12 +28,12 @@ func NewStorageFactory(path string) (*Storage, error) {
 	stateDir := filepath.Dir(path)
 	err := makeDirs(stateDir, 0700)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "NewStorageFactory")
 	}
 
 	stateExists, err := fileExists(path)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "NewStorageFactory")
 	}
 
 	if !stateExists {
@@ -45,7 +46,7 @@ func NewStorageFactory(path string) (*Storage, error) {
 	// written the right way.
 	err = state.Read()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "NewStorageFactory")
 	}
 
 	return state, nil
@@ -56,7 +57,7 @@ func NewStorageFactory(path string) (*Storage, error) {
 func (i *Storage) Read() error {
 	f, err := ioutil.ReadFile(i.Path)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Read")
 	}
 
 	i.Lock()
@@ -71,7 +72,7 @@ func (i *Storage) Write() error {
 	defer i.Unlock()
 	data, err := yaml.Marshal(&i.Data)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Write")
 	}
 
 	return ioutil.WriteFile(i.Path, data, 0600)
@@ -80,7 +81,7 @@ func (i *Storage) Write() error {
 func (i *Storage) stateReload() error {
 	err := i.Write()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "stateReload")
 	}
-	return i.Read()
+	return errors.Wrap(i.Read(), "stateReload")
 }

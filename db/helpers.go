@@ -1,11 +1,11 @@
 package db
 
 import (
-	"errors"
 	"os"
 	"strconv"
 	"strings"
 
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 
@@ -13,11 +13,11 @@ func getIndex(k string) (int, error) {
 	if strings.HasPrefix(k, "[") && strings.HasSuffix(k, "]") {
 		intVar, err := strconv.Atoi(k[1 : len(k)-1])
 		if err != nil {
-			return 0, err
+			return 0, errors.Wrap(err, "getIndex")
 		}
 		return intVar, nil
 	}
-	return 0, errors.New(notAnIndex)
+	return 0, errors.Wrap(errors.New(notAnIndex), "getIndex")
 }
 
 // Some common objects
@@ -78,19 +78,19 @@ func getObjectType(o interface{}) objectType {
 func copyMap(o interface{}) (interface{}, error) {
 	obj, err := interfaceToMap(o)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "copyMap")
 	}
 
 	var cache interface{}
 
 	data, err := yaml.Marshal(&obj)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "copyMap")
 	}
 
 	err = yaml.Unmarshal(data, &cache)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "copyMap")
 	}
 
 	return cache, nil
@@ -100,7 +100,7 @@ func interfaceToMap(o interface{}) (map[interface{}]interface{}, error) {
 	obj, isMap := o.(map[interface{}]interface{})
 	if !isMap {
 		if o != nil {
-			return nil, errors.New(notAMap)
+			return nil, errors.Wrap(errors.New(notAMap), "interfaceToMap")
 		}
 		obj = make(map[interface{}]interface{})
 	}
@@ -118,7 +118,7 @@ func makeDirs(p string, m os.FileMode) error {
 	if _, err := os.Stat(p); os.IsNotExist(err) {
 		err = os.MkdirAll(p, m)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "makeDirs")
 		}
 	}
 	return nil
@@ -130,7 +130,7 @@ func fileExists(filepath string) (bool, error) {
 	if os.IsNotExist(err) {
 		return false, nil
 	} else if f.IsDir() {
-		return false, errors.New(dictNotFile)
+		return false, errors.Wrap(errors.New(dictNotFile), "fileExists")
 	}
 
 	return true, nil
