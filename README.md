@@ -1,6 +1,15 @@
 # DB Yaml
 
-Simple DB Using yaml.
+Simple DB using yaml. A project that for managing the 
+content of yaml files.
+
+Features:
+- Create/Load yaml files
+- Update content
+- Get values from keys
+- Query for keys
+- Delete keys
+- Merge content
 
 ##  Usage
 
