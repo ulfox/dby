@@ -95,10 +95,6 @@ some:
     path: test
 ```
 
-#### Better errors
-
-Description: Provide more details on errors and have better wrapping during error propagation
-
 ### Tests
 
 - Cover cache state during operations
