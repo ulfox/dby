@@ -1,7 +1,6 @@
 package db
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -9,10 +8,6 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
-
-func errString(b, k string) string {
-	return fmt.Sprintf(b, k)
-}
 
 func getIndex(k string) (int, error) {
 	if strings.HasPrefix(k, "[") && strings.HasSuffix(k, "]") {
