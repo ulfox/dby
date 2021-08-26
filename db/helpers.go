@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -8,6 +9,10 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
+
+func errString(b, k string) string {
+	return fmt.Sprintf(b, k)
+}
 
 func getIndex(k string) (int, error) {
 	if strings.HasPrefix(k, "[") && strings.HasSuffix(k, "]") {
@@ -17,7 +22,7 @@ func getIndex(k string) (int, error) {
 		}
 		return intVar, nil
 	}
-	return 0, errors.Wrap(errors.New(notAnIndex), "getIndex")
+	return 0, errors.New(errString(notAnIndex, k))
 }
 
 // Some common objects
@@ -130,7 +135,7 @@ func fileExists(filepath string) (bool, error) {
 	if os.IsNotExist(err) {
 		return false, nil
 	} else if f.IsDir() {
-		return false, errors.Wrap(errors.New(dictNotFile), "fileExists")
+		return false, errors.New(errString(dictNotFile, filepath))
 	}
 
 	return true, nil
