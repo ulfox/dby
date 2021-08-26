@@ -2,15 +2,14 @@ package db
 
 // Inormational Error constants. Used during a return ... errors.New()
 const (
-	keyExists            = "the given key already exists. Use update or upsert instead"
-	notAMap              = "object to be updated is not a map"
-	notArrayObj          = "received a non array object but expected []interface{}"
-	keyDoesNotExist      = "the given key does not exist"
-	fileNotExist         = "the given file does not exist"
-	deleteObjKeyNotFound = "could not delete an existing key. Possible delete function bug"
-	dictNotFile          = "a directory exists with that name"
-	notAnIndex           = "object is not an index. Index example: some.path.[someInteger].someKey"
-	arrayOutOfRange      = "index value was bigger than the array to be indexed"
+	notAMap         = "target object is not a map"
+	notArrayObj     = "received a non array object but expected []interface{}"
+	keyDoesNotExist = "the given key [%s] does not exist"
+	fileNotExist    = "the given file [%s] does not exist"
+	dictNotFile     = "can not create file [%s], a directory exists with that name"
+	notAnIndex      = "object (%s) is not an index. Index example: some.path.[someInteger].someKey"
+	arrayOutOfRange = "index value (%s) is bigger than the length (%s) of the array to be indexed"
+	invalidKeyPath  = "the key||path [%s] that was given is not valid"
 )
 
 type objectType int
