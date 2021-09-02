@@ -1,9 +1,27 @@
-# DB Yaml
+## DB Yaml
 
 Simple DB using yaml. A project that for managing the 
 content of yaml files.
 
-Features:
+Table of Contents
+=================
+- [DB Yaml](#db-yaml)
+- [Features](#features)
+- [Usage](#usage)
+    * [Write to DB](#write-to-db)
+    * [Query DB](#query-db)
+      + [Get First Key](#get-first-key)
+      + [Search for Keys](#search-for-keys)
+    * [Query Path](#query-path)
+      + [Query Path with Arrays](#query-path-with-arrays)
+        - [Without trailing array](#without-trailing-array)
+        - [With trailing array](#with-trailing-array)
+    * [Delete Key By Path](#delete-key-by-path)
+
+## Features
+
+The module can do
+
 - Create/Load yaml files
 - Update content
 - Get values from keys
@@ -57,7 +75,7 @@ Insert a map to the local yaml file.
 
 ### Query DB
 
-#### GetSingle
+#### Get First Key
 
 Get the value of the first key in the hierarchy (if any)
 
