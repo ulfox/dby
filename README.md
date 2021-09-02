@@ -73,9 +73,9 @@ For example if we have the following structure
 
 ```yaml
 key-1:
-	key-2:
-		key-3: "1"
-	key-3: "2"
+    key-2:
+        key-3: "1"
+    key-3: "2"
 ```
 
 And we query for `key-3`, then we will get back **"2"** and not **"1"**
@@ -108,8 +108,8 @@ For example if we have in yaml file the following key-path
 
 ```yaml
 key-1:
-	key-2:
-		key-3: someValue
+    key-2:
+        key-3: someValue
 ```
 
 Then to get someValue, issue
@@ -130,9 +130,9 @@ We can also query paths that have arrays.
 
 ```yaml
 key-1:
-	key-2:
-		- key-3: 
-			key-4: value-1
+    key-2:
+        - key-3: 
+            key-4: value-1
 ```
 
 To get the value of `key-4`, issue
@@ -149,10 +149,10 @@ To get the value of `key-4`, issue
 
 ```yaml
 key-1:
-	key-2:
-		- value-1
-		- value-2
-		- value-3
+    key-2:
+        - value-1
+        - value-2
+        - value-3
 ```
 
 To get the first index of `key-2`, issue
