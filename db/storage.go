@@ -2,6 +2,8 @@ package db
 
 import (
 	"io/ioutil"
+	"os"
+	"path"
 	"path/filepath"
 	"sync"
 
@@ -75,7 +77,22 @@ func (i *Storage) Write() error {
 		return errors.Wrap(err, "Write")
 	}
 
-	return ioutil.WriteFile(i.Path, data, 0600)
+	wrkDir := path.Dir(i.Path)
+	f, err := ioutil.TempFile(wrkDir, ".tx.*")
+	if err != nil {
+		return errors.Wrap(err, "Write")
+	}
+
+	_, err = f.Write(data)
+	if err != nil {
+		return errors.Wrap(err, "Write")
+	}
+	err = f.Close()
+	if err != nil {
+		return errors.Wrap(err, "Write")
+	}
+
+	return errors.Wrap(os.Rename(f.Name(), i.Path), "Write")
 }
 
 func (i *Storage) stateReload() error {
