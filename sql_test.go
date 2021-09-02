@@ -15,7 +15,7 @@ import (
 func TestUpsert(t *testing.T) {
 	t.Parallel()
 
-	path := "local/db-upsert.yaml"
+	path := ".test/db-upsert.yaml"
 	state, err := db.NewStorageFactory(path)
 	assert.Equal(t, err, nil)
 
@@ -140,12 +140,12 @@ func TestUpsert(t *testing.T) {
 func TestGetSingle(t *testing.T) {
 	t.Parallel()
 
-	path := "local/db-query.yaml"
+	path := ".test/db-query.yaml"
 	state, err := db.NewStorageFactory(path)
 	assert.Equal(t, err, nil)
 
 	err = state.Upsert(
-		"test.path",
+		".test.path",
 		map[string]string{
 			"key-1": "value-1",
 			"key-2": "value-2",
@@ -188,7 +188,7 @@ func TestGetSingle(t *testing.T) {
 func TestGetPath(t *testing.T) {
 	t.Parallel()
 
-	path := "local/db-get-path.yaml"
+	path := ".test/db-get-path.yaml"
 	state, err := db.NewStorageFactory(path)
 	assert.Equal(t, err, nil)
 
@@ -259,7 +259,7 @@ func TestGetPath(t *testing.T) {
 func TestDelete(t *testing.T) {
 	t.Parallel()
 
-	path := "local/db-delete-key.yaml"
+	path := ".test/db-delete-key.yaml"
 	state, err := db.NewStorageFactory(path)
 	assert.Equal(t, err, nil)
 
@@ -293,7 +293,7 @@ func TestDelete(t *testing.T) {
 func TestGet(t *testing.T) {
 	t.Parallel()
 
-	path := "local/db-get-keys.yaml"
+	path := ".test/db-get-keys.yaml"
 	state, err := db.NewStorageFactory(path)
 	assert.Equal(t, err, nil)
 
