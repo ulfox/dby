@@ -8,7 +8,7 @@ import (
 
 // Upsert is a SQL wrapper for adding/updating map structures
 func (s *Storage) Upsert(k string, i interface{}) error {
-	err := s.SQL.upsert(k, i, s.Data)
+	err := s.SQL.upsertRecursive(strings.Split(k, "."), s.Data, i)
 	if err != nil {
 		return errors.Wrap(err, "Upsert")
 	}

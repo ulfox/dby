@@ -13,7 +13,7 @@ import (
 // state yaml file
 type Storage struct {
 	sync.Mutex
-	SQL  SQL
+	SQL  *SQL
 	Data interface{}
 	Path string
 }
@@ -21,7 +21,7 @@ type Storage struct {
 // NewStorageFactory for creating a new Storage struct.
 func NewStorageFactory(path string) (*Storage, error) {
 	state := &Storage{
-		SQL:  SQL{},
+		SQL:  NewSQLFactory(),
 		Path: path,
 	}
 

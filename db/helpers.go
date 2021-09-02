@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -17,7 +18,7 @@ func getIndex(k string) (int, error) {
 		}
 		return intVar, nil
 	}
-	return 0, errors.New(errString(notAnIndex, k))
+	return 0, errors.New(fmt.Sprintf(notAnIndex, k))
 }
 
 // Some common objects
@@ -130,7 +131,7 @@ func fileExists(filepath string) (bool, error) {
 	if os.IsNotExist(err) {
 		return false, nil
 	} else if f.IsDir() {
-		return false, errors.New(errString(dictNotFile, filepath))
+		return false, errors.New(fmt.Sprintf(dictNotFile, filepath))
 	}
 
 	return true, nil
