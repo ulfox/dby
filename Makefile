@@ -1,6 +1,3 @@
-# Project settings
-PROJECT = dby
-
 .PHONY: clean
 clean:
 	rm -rf .test
@@ -13,6 +10,6 @@ lint:
 	golint -set_exit_status ./...
 
 
-.PHONY: clean
+.PHONY: test
 test:
 	go test -v .
