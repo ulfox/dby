@@ -1,7 +1,5 @@
 package db
 
-import "fmt"
-
 // Inormational Error constants. Used during a return ... errors.New()
 const (
 	notAMap         = "target object is not a map"
@@ -13,7 +11,3 @@ const (
 	arrayOutOfRange = "index value (%s) is bigger than the length (%s) of the array to be indexed"
 	invalidKeyPath  = "the key||path [%s] that was given is not valid"
 )
-
-func errString(b, k string) string {
-	return fmt.Sprintf(b, k)
-}

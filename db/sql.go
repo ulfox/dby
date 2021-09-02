@@ -15,20 +15,29 @@ import (
 // path discovery methods to keep track and derive the right path.
 type Cache struct {
 	V1   interface{}
-	V2   map[interface{}]interface{}
+	V2   int
 	Keys []string
 }
 
 // Query hosts results from SQL methods
 type Query struct {
 	KeysFound []string
-	Results   []interface{}
+	Results   interface{}
 }
 
 // SQL is the core struct for working with maps.
 type SQL struct {
 	Query Query
 	Cache Cache
+}
+
+// NewSQLFactory creates a new empty SQL
+func NewSQLFactory() *SQL {
+	sql := &SQL{
+		Query: Query{},
+		Cache: Cache{},
+	}
+	return sql
 }
 
 // Clear deletes all objects from Query and Cache structures
@@ -41,6 +50,7 @@ func (d *SQL) Clear() *SQL {
 
 func (d *SQL) clearCache() *SQL {
 	d.Cache = Cache{}
+
 	return d
 }
 
@@ -132,7 +142,7 @@ func (d *SQL) getPath(k []string, o interface{}) (interface{}, error) {
 	}
 
 	if len(k) == 0 {
-		return nil, errors.New(errString(keyDoesNotExist, k[0]))
+		return nil, errors.New(fmt.Sprintf(keyDoesNotExist, k[0]))
 	}
 
 	for thisKey, thisObj := range obj {
@@ -150,7 +160,7 @@ func (d *SQL) getPath(k []string, o interface{}) (interface{}, error) {
 		}
 	}
 
-	return nil, errors.New(errString(keyDoesNotExist, k[0]))
+	return nil, errors.New(fmt.Sprintf(keyDoesNotExist, k[0]))
 }
 
 func (d *SQL) deleteItem(k string, o interface{}) bool {
@@ -167,12 +177,12 @@ func (d *SQL) delPath(k string, o interface{}) error {
 	keys := strings.Split(k, ".")
 
 	if len(keys) == 0 {
-		return errors.New(errString(invalidKeyPath, k))
+		return errors.New(fmt.Sprintf(invalidKeyPath, k))
 	}
 
 	if len(keys) == 1 {
 		if !d.deleteItem(keys[0], o) {
-			return errors.New(errString(keyDoesNotExist, k))
+			return errors.New(fmt.Sprintf(keyDoesNotExist, k))
 		}
 		return nil
 	}
@@ -185,7 +195,7 @@ func (d *SQL) delPath(k string, o interface{}) error {
 
 	d.dropKeys()
 	if !d.deleteItem(keys[len(keys)-1], obj) {
-		return errors.New(errString(keyDoesNotExist, k))
+		return errors.New(fmt.Sprintf(keyDoesNotExist, k))
 	}
 
 	return nil
@@ -195,7 +205,7 @@ func (d *SQL) get(k string, o interface{}) ([]string, error) {
 	var err error
 	var key string
 
-	d.clearCache()
+	d.Clear()
 	d.Cache.V1, err = copyMap(o)
 	if err != nil {
 		return nil, errors.Wrap(err, "get")
@@ -219,16 +229,35 @@ func (d *SQL) get(k string, o interface{}) ([]string, error) {
 }
 
 func (d *SQL) getFirst(k string, o interface{}) (interface{}, error) {
-	d.clearCache()
-	obj, found := d.getObj(k, o)
-	if !found {
-		return nil, errors.New(errString(keyDoesNotExist, k))
+	d.Clear()
+
+	obj, err := d.get(k, o)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf(keyDoesNotExist, k))
 	}
 
-	return obj, nil
+	if len(obj) == 0 {
+		return nil, errors.New(fmt.Sprintf(keyDoesNotExist, k))
+	}
+
+	if len(obj) == 1 {
+		return d.getPath(strings.Split(obj[0], "."), o)
+	}
+
+	for i, key := range obj[1:] {
+		d.dropKeys()
+		if len(strings.Split(key, ".")) < len(strings.Split(obj[0], ".")) {
+			d.dropKeys()
+			d.Cache.V2 = i
+		}
+	}
+
+	return d.getPath(strings.Split(obj[d.Cache.V2], "."), o)
 }
 
 func (d *SQL) upsertRecursive(k []string, o, v interface{}) error {
+	d.Clear()
+
 	obj, err := interfaceToMap(o)
 	if err != nil {
 		return errors.Wrap(err, "upsertRecursive")
@@ -270,10 +299,6 @@ func (d *SQL) upsertRecursive(k []string, o, v interface{}) error {
 	return nil
 }
 
-func (d *SQL) upsert(k string, i, o interface{}) error {
-	return errors.Wrap(d.upsertRecursive(strings.Split(k, "."), o, i), "upsert")
-}
-
 func (d *SQL) mergeDBs(path string, o interface{}) error {
 	var dataNew interface{}
 
@@ -283,7 +308,7 @@ func (d *SQL) mergeDBs(path string, o interface{}) error {
 	}
 
 	if !ok {
-		return errors.New(errString(fileNotExist, path))
+		return errors.New(fmt.Sprintf(fileNotExist, path))
 	}
 
 	f, err := ioutil.ReadFile(path)
@@ -299,7 +324,7 @@ func (d *SQL) mergeDBs(path string, o interface{}) error {
 	}
 
 	for kn, vn := range obj {
-		err = d.upsert(kn.(string), vn, o)
+		err = d.upsertRecursive(strings.Split(kn.(string), "."), o, vn)
 		if err != nil {
 			return errors.Wrap(err, "mergeDBs")
 		}
