@@ -19,7 +19,7 @@ Simple examples for working with yaml files as db
 
 Create a new local DB
 
-```
+```go
 package main
 
 import (
@@ -41,7 +41,7 @@ func main() {
 
 Insert a map to the local yaml file.
 
-```
+```go
 	err = state.Upsert(
 		"some.path",
 		map[string]string{
@@ -61,7 +61,7 @@ Insert a map to the local yaml file.
 
 Get the value of the first key in the hierarchy (if any)
 
-```
+```go
 	val, err := state.GetFirst("key-1")
 	if err != nil {
 		logger.Fatalf(err.Error())
@@ -71,7 +71,7 @@ Get the value of the first key in the hierarchy (if any)
 
 For example if we have the following structure
 
-```
+```yaml
 key-1:
 	key-2:
 		key-3: "1"
@@ -86,7 +86,7 @@ since `key-3` appears first on a higher layer with a value of **2**
 Get all they keys (if any). This returns the full path for the key,
 not the key values. To get the values check the next section **GetPath**
 
-```
+```go
 	keys, err := state.Get("key-1")
 	if err != nil {
 		logger.Fatalf(err.Error())
@@ -96,7 +96,7 @@ not the key values. To get the values check the next section **GetPath**
 
 From the previous example, this query would have returned
 
-```
+```yaml
 ["key-1.key-2.key-3", "key-1.key-3"]
 ```
 
@@ -106,7 +106,7 @@ Get the value from a given path (if any)
 
 For example if we have in yaml file the following key-path
 
-```
+```yaml
 key-1:
 	key-2:
 		key-3: someValue
@@ -114,7 +114,7 @@ key-1:
 
 Then to get someValue, issue
 
-```
+```go
 	keyPath, err := state.GetPath("key-1.key-2.key-3")
 	if err != nil {
 		logger.Fatalf(err.Error())
@@ -128,7 +128,7 @@ We can also query paths that have arrays.
 
 ##### Without trailing array
 
-```
+```yaml
 key-1:
 	key-2:
 		- key-3: 
@@ -137,7 +137,7 @@ key-1:
 
 To get the value of `key-4`, issue
 
-```
+```go
 	keyPath, err := state.GetPath("key-1.key-2.[0].key-3.key-4")
 	if err != nil {
 		logger.Fatalf(err.Error())
@@ -147,7 +147,7 @@ To get the value of `key-4`, issue
 
 ##### With trailing array
 
-```
+```yaml
 key-1:
 	key-2:
 		- value-1
@@ -170,7 +170,7 @@ To get the first index of `key-2`, issue
 To delete a single key for a given path, e.g. key-2
 from the example above, issue
 
-```
+```go
 	err = state.Delete("key-1.key-2")
 	if err != nil {
 		logger.Fatalf(err.Error())
