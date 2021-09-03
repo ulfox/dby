@@ -16,6 +16,7 @@ const (
 	notAnIndex      = "object (%s) is not an index. Index example: some.path.[someInteger].someKey"
 	arrayOutOfRange = "index value (%s) is bigger than the length (%s) of the array to be indexed"
 	invalidKeyPath  = "the key||path [%s] that was given is not valid"
+	emptyKey        = "path [%s] contains an empty key"
 )
 
 func wrapErr(e error, s string) error {

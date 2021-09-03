@@ -128,6 +128,10 @@ func (d *SQL) getFromIndex(k []string, o interface{}) (interface{}, error) {
 }
 
 func (d *SQL) getPath(k []string, o interface{}) (interface{}, error) {
+	if err := checkKeyPath(k); err != nil {
+		return nil, wrapErr(err, getFn())
+	}
+
 	obj, err := interfaceToMap(o)
 	if err != nil {
 		return d.getFromIndex(k, o)
@@ -168,6 +172,9 @@ func (d *SQL) deleteItem(k string, o interface{}) bool {
 
 func (d *SQL) delPath(k string, o interface{}) error {
 	keys := strings.Split(k, ".")
+	if err := checkKeyPath(keys); err != nil {
+		return wrapErr(err, getFn())
+	}
 
 	if len(keys) == 0 {
 		return wrapErr(fmt.Errorf(invalidKeyPath, k), getFn())
@@ -233,10 +240,16 @@ func (d *SQL) getFirst(k string, o interface{}) (interface{}, error) {
 		return nil, wrapErr(fmt.Errorf(keyDoesNotExist, k), getFn())
 	}
 
-	d.Cache.C1 = len(strings.Split(obj[0], "."))
-	if len(obj) == 1 {
-		return d.getPath(strings.Split(obj[0], "."), o)
+	keySlice := strings.Split(obj[0], ".")
+	if err := checkKeyPath(keySlice); err != nil {
+		return nil, wrapErr(err, getFn())
 	}
+
+	d.Cache.C1 = len(keySlice)
+	if len(obj) == 1 {
+		return d.getPath(keySlice, o)
+	}
+
 	for i, key := range obj {
 		if len(strings.Split(key, ".")) < d.Cache.C1 {
 			d.Cache.C1 = len(strings.Split(key, "."))
@@ -249,6 +262,10 @@ func (d *SQL) getFirst(k string, o interface{}) (interface{}, error) {
 
 func (d *SQL) upsertRecursive(k []string, o, v interface{}) error {
 	d.Clear()
+
+	if err := checkKeyPath(k); err != nil {
+		return wrapErr(err, getFn())
+	}
 
 	obj, err := interfaceToMap(o)
 	if err != nil {

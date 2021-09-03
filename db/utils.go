@@ -11,6 +11,15 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+func checkKeyPath(k []string) error {
+	for _, j := range k {
+		if j == "" {
+			return fmt.Errorf(emptyKey, strings.Join(k, "."))
+		}
+	}
+	return nil
+}
+
 func getFn() string {
 	pc, _, no, ok := runtime.Caller(1)
 	details := runtime.FuncForPC(pc)
