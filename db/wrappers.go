@@ -2,15 +2,13 @@ package db
 
 import (
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 // Upsert is a SQL wrapper for adding/updating map structures
 func (s *Storage) Upsert(k string, i interface{}) error {
 	err := s.SQL.upsertRecursive(strings.Split(k, "."), s.Data, i)
 	if err != nil {
-		return errors.Wrap(err, "Upsert")
+		return wrapErr(err, getFn())
 	}
 
 	return s.stateReload()
@@ -22,7 +20,7 @@ func (s *Storage) Upsert(k string, i interface{}) error {
 func (s *Storage) GetFirst(k string) (interface{}, error) {
 	obj, err := s.SQL.getFirst(k, s.Data)
 	if err != nil {
-		return nil, errors.Wrap(err, "GetFirst")
+		return nil, wrapErr(err, getFn())
 	}
 
 	return obj, nil
@@ -41,7 +39,7 @@ func (s *Storage) GetFirst(k string) (interface{}, error) {
 func (s *Storage) Get(k string) ([]string, error) {
 	obj, err := s.SQL.get(k, s.Data)
 	if err != nil {
-		return nil, errors.Wrap(err, "Get")
+		return nil, wrapErr(err, getFn())
 	}
 
 	return obj, nil
@@ -58,7 +56,7 @@ func (s *Storage) GetPath(k string) (interface{}, error) {
 	keys := strings.Split(k, ".")
 	obj, err := s.SQL.getPath(keys, s.Data)
 	if err != nil {
-		return nil, errors.Wrap(err, "GetPath")
+		return nil, wrapErr(err, getFn())
 	}
 
 	return obj, nil
@@ -71,7 +69,7 @@ func (s *Storage) GetPath(k string) (interface{}, error) {
 func (s *Storage) Delete(k string) error {
 	err := s.SQL.delPath(k, s.Data)
 	if err != nil {
-		return errors.Wrap(err, "Delete")
+		return wrapErr(err, getFn())
 	}
 
 	return s.Write()
@@ -82,7 +80,7 @@ func (s *Storage) Delete(k string) error {
 func (s *Storage) MergeDBs(path string) error {
 	err := s.SQL.mergeDBs(path, s.Data)
 	if err != nil {
-		return errors.Wrap(err, "MergeDBs")
+		return wrapErr(err, getFn())
 	}
 
 	return s.Write()

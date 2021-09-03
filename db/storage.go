@@ -7,12 +7,11 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 
-// Storage for managing RW of our
-// state yaml file
+// Storage is the main object exported by DBy. It consolidates together
+// the Yaml Data and SQL
 type Storage struct {
 	sync.Mutex
 	SQL  *SQL
@@ -20,7 +19,7 @@ type Storage struct {
 	Path string
 }
 
-// NewStorageFactory for creating a new Storage struct.
+// NewStorageFactory for creating a new Storage
 func NewStorageFactory(path string) (*Storage, error) {
 	state := &Storage{
 		SQL:  NewSQLFactory(),
@@ -30,12 +29,12 @@ func NewStorageFactory(path string) (*Storage, error) {
 	stateDir := filepath.Dir(path)
 	err := makeDirs(stateDir, 0700)
 	if err != nil {
-		return nil, errors.Wrap(err, "NewStorageFactory")
+		return nil, wrapErr(err, getFn())
 	}
 
 	stateExists, err := fileExists(path)
 	if err != nil {
-		return nil, errors.Wrap(err, "NewStorageFactory")
+		return nil, wrapErr(err, getFn())
 	}
 
 	if !stateExists {
@@ -48,7 +47,7 @@ func NewStorageFactory(path string) (*Storage, error) {
 	// written the right way.
 	err = state.Read()
 	if err != nil {
-		return nil, errors.Wrap(err, "NewStorageFactory")
+		return nil, wrapErr(err, getFn())
 	}
 
 	return state, nil
@@ -59,7 +58,7 @@ func NewStorageFactory(path string) (*Storage, error) {
 func (i *Storage) Read() error {
 	f, err := ioutil.ReadFile(i.Path)
 	if err != nil {
-		return errors.Wrap(err, "Read")
+		return wrapErr(err, getFn())
 	}
 
 	i.Lock()
@@ -74,31 +73,31 @@ func (i *Storage) Write() error {
 	defer i.Unlock()
 	data, err := yaml.Marshal(&i.Data)
 	if err != nil {
-		return errors.Wrap(err, "Write")
+		return wrapErr(err, getFn())
 	}
 
 	wrkDir := path.Dir(i.Path)
 	f, err := ioutil.TempFile(wrkDir, ".tx.*")
 	if err != nil {
-		return errors.Wrap(err, "Write")
+		return wrapErr(err, getFn())
 	}
 
 	_, err = f.Write(data)
 	if err != nil {
-		return errors.Wrap(err, "Write")
+		return wrapErr(err, getFn())
 	}
 	err = f.Close()
 	if err != nil {
-		return errors.Wrap(err, "Write")
+		return wrapErr(err, getFn())
 	}
 
-	return errors.Wrap(os.Rename(f.Name(), i.Path), "Write")
+	return wrapErr(os.Rename(f.Name(), i.Path), getFn())
 }
 
 func (i *Storage) stateReload() error {
 	err := i.Write()
 	if err != nil {
-		return errors.Wrap(err, "stateReload")
+		return wrapErr(err, getFn())
 	}
-	return errors.Wrap(i.Read(), "stateReload")
+	return wrapErr(i.Read(), getFn())
 }
