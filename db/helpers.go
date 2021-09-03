@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -10,15 +11,24 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+func getFn() string {
+	pc, _, no, ok := runtime.Caller(1)
+	details := runtime.FuncForPC(pc)
+	if ok && details != nil {
+		return fmt.Sprintf("%s#%s", details.Name(), strconv.Itoa(no))
+	}
+	return ""
+}
+
 func getIndex(k string) (int, error) {
 	if strings.HasPrefix(k, "[") && strings.HasSuffix(k, "]") {
 		intVar, err := strconv.Atoi(k[1 : len(k)-1])
 		if err != nil {
-			return 0, errors.Wrap(err, "getIndex")
+			return 0, wrapErr(err, getFn())
 		}
 		return intVar, nil
 	}
-	return 0, errors.New(fmt.Sprintf(notAnIndex, k))
+	return 0, wrapErr(fmt.Errorf(notAnIndex, k), getFn())
 }
 
 // Some common objects
@@ -79,19 +89,19 @@ func getObjectType(o interface{}) objectType {
 func copyMap(o interface{}) (interface{}, error) {
 	obj, err := interfaceToMap(o)
 	if err != nil {
-		return nil, errors.Wrap(err, "copyMap")
+		return nil, wrapErr(err, getFn())
 	}
 
 	var cache interface{}
 
 	data, err := yaml.Marshal(&obj)
 	if err != nil {
-		return nil, errors.Wrap(err, "copyMap")
+		return nil, wrapErr(err, getFn())
 	}
 
 	err = yaml.Unmarshal(data, &cache)
 	if err != nil {
-		return nil, errors.Wrap(err, "copyMap")
+		return nil, wrapErr(err, getFn())
 	}
 
 	return cache, nil
@@ -101,7 +111,7 @@ func interfaceToMap(o interface{}) (map[interface{}]interface{}, error) {
 	obj, isMap := o.(map[interface{}]interface{})
 	if !isMap {
 		if o != nil {
-			return nil, errors.Wrap(errors.New(notAMap), "interfaceToMap")
+			return nil, wrapErr(errors.New(notAMap), getFn())
 		}
 		obj = make(map[interface{}]interface{})
 	}
@@ -119,7 +129,7 @@ func makeDirs(p string, m os.FileMode) error {
 	if _, err := os.Stat(p); os.IsNotExist(err) {
 		err = os.MkdirAll(p, m)
 		if err != nil {
-			return errors.Wrap(err, "makeDirs")
+			return wrapErr(err, getFn())
 		}
 	}
 	return nil
@@ -131,7 +141,7 @@ func fileExists(filepath string) (bool, error) {
 	if os.IsNotExist(err) {
 		return false, nil
 	} else if f.IsDir() {
-		return false, errors.New(fmt.Sprintf(dictNotFile, filepath))
+		return false, wrapErr(fmt.Errorf(dictNotFile, filepath), getFn())
 	}
 
 	return true, nil

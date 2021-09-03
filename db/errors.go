@@ -1,5 +1,11 @@
 package db
 
+import (
+	"strings"
+
+	"github.com/pkg/errors"
+)
+
 // Inormational Error constants. Used during a return ... errors.New()
 const (
 	notAMap         = "target object is not a map"
@@ -11,3 +17,17 @@ const (
 	arrayOutOfRange = "index value (%s) is bigger than the length (%s) of the array to be indexed"
 	invalidKeyPath  = "the key||path [%s] that was given is not valid"
 )
+
+func wrapErr(e error, s string) error {
+	if s == "" {
+		return e
+	}
+
+	return errors.Wrap(
+		e,
+		strings.Split(
+			s,
+			"/",
+		)[len(strings.Split(s, "/"))-1],
+	)
+}
