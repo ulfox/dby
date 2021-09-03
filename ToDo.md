@@ -15,13 +15,6 @@
 Description: Some blocks have nested loops/ifs (e.g. for{if{if{}}}) which are not good
 either for maintenace or readability.
 
-### Consolidate repeating code blocks
-
-Description: There are code blocks that appear on different methods. While they are
-not exactly identical, their structure is. We could consolidate these blocks to a
-more abstract functions in order to reduce repitivness and work needed for future
-changes.
-
 #### Introduce double linked lists for path seeking
 
 Description: When we want to find valid paths for a given key, or we want to get 

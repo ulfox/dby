@@ -20,72 +20,6 @@ func getFn() string {
 	return ""
 }
 
-func getIndex(k string) (int, error) {
-	if strings.HasPrefix(k, "[") && strings.HasSuffix(k, "]") {
-		intVar, err := strconv.Atoi(k[1 : len(k)-1])
-		if err != nil {
-			return 0, wrapErr(err, getFn())
-		}
-		return intVar, nil
-	}
-	return 0, wrapErr(fmt.Errorf(notAnIndex, k), getFn())
-}
-
-// Some common objects
-func getObjectType(o interface{}) objectType {
-	_, isMap := o.(map[interface{}]interface{})
-	if isMap {
-		return 1
-	}
-
-	_, isArray := o.([]interface{})
-	if isArray {
-		return 2
-	}
-
-	_, isArrayMap := o.([]map[interface{}]interface{})
-	if isArrayMap {
-		return 3
-	}
-
-	_, isMapStringString := o.(map[string]string)
-	if isMapStringString {
-		return 4
-	}
-
-	_, isMapStringInterface := o.(map[string]interface{})
-	if isMapStringInterface {
-		return 5
-	}
-
-	_, isMapStringArrayString := o.(map[string][]string)
-	if isMapStringArrayString {
-		return 6
-	}
-
-	_, isArrayMapStringArrayString := o.([]map[string][]string)
-	if isArrayMapStringArrayString {
-		return 7
-	}
-
-	_, isArrayMapStringString := o.([]map[string]string)
-	if isArrayMapStringString {
-		return 8
-	}
-
-	_, isArrayMapStringInterface := o.([]map[string]interface{})
-	if isArrayMapStringInterface {
-		return 9
-	}
-
-	_, isArrayMapStringArrayInterface := o.([]map[string][]interface{})
-	if isArrayMapStringArrayInterface {
-		return 10
-	}
-
-	return unknownObj
-}
-
 func copyMap(o interface{}) (interface{}, error) {
 	obj, err := interfaceToMap(o)
 	if err != nil {
@@ -116,6 +50,12 @@ func interfaceToMap(o interface{}) (map[interface{}]interface{}, error) {
 		obj = make(map[interface{}]interface{})
 	}
 	return obj, nil
+}
+
+func deleteMap(o interface{}) {
+	for kn := range o.(map[interface{}]interface{}) {
+		delete(o.(map[interface{}]interface{}), kn)
+	}
 }
 
 // makeDirs create directories if they do not exist

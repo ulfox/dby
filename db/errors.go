@@ -23,11 +23,5 @@ func wrapErr(e error, s string) error {
 		return e
 	}
 
-	return errors.Wrap(
-		e,
-		strings.Split(
-			s,
-			"/",
-		)[len(strings.Split(s, "/"))-1],
-	)
+	return errors.Wrap(e, strings.Split(s, "/")[len(strings.Split(s, "/"))-1])
 }
