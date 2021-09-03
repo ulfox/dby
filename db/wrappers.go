@@ -30,11 +30,12 @@ func (s *Storage) GetFirst(k string) (interface{}, error) {
 // e.g. ["key-1.test", "key-2.key-3.test"] will be returned
 // if "test" was the key asked from the following yaml
 // ---------
+//
 // key-1:
-//	test: someValue-1
+//		test: someValue-1
 // key-2:
-//	key-3:
-//		test: someValue-2
+//		key-3:
+//			test: someValue-2
 //
 func (s *Storage) Get(k string) ([]string, error) {
 	obj, err := s.SQL.get(k, s.Data)
