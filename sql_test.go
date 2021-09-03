@@ -225,8 +225,8 @@ func TestGetPath(t *testing.T) {
 		[]map[string][]string{
 			{
 				"array": {
-					"value-1",
-					"value-2",
+					"value-3",
+					"value-4",
 				},
 			},
 		},
@@ -236,13 +236,13 @@ func TestGetPath(t *testing.T) {
 
 	val, err = state.GetPath("some.[0].array")
 	assert.Equal(t, err, nil)
-	assert.Equal(t, val, []interface{}{"value-1", "value-2"})
+	assert.Equal(t, val, []interface{}{"value-3", "value-4"})
 
 	err = state.Upsert(
 		"array",
 		[]string{
-			"value-1",
-			"value-2",
+			"value-5",
+			"value-6",
 		},
 	)
 
@@ -250,11 +250,11 @@ func TestGetPath(t *testing.T) {
 
 	val, err = state.GetPath("array.[0]")
 	assert.Equal(t, err, nil)
-	assert.Equal(t, val, "value-1")
+	assert.Equal(t, val, "value-5")
 
 	val, err = state.GetPath("array.[1]")
 	assert.Equal(t, err, nil)
-	assert.Equal(t, val, "value-2")
+	assert.Equal(t, val, "value-6")
 
 	val, err = state.GetPath("array.[2]")
 	assert.NotEqual(t, err, nil)

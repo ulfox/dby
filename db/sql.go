@@ -10,19 +10,18 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Cache for easily sharing state between map operations and methods
-// v1 & v2 are common interface{} placeholders while keys is used by
-// path discovery methods to keep track and derive the right path.
-type Cache struct {
-	V1, V2     interface{}
-	C1, C2, C3 int
-	Keys       []string
-}
-
 // Query hosts results from SQL methods
 type Query struct {
 	KeysFound []string
 	Results   interface{}
+}
+
+// Clear deletes all objects from Query
+func (q *Query) Clear() *Query {
+	q.KeysFound = nil
+	q.Results = nil
+
+	return q
 }
 
 // SQL is the core struct for working with maps.
@@ -42,31 +41,17 @@ func NewSQLFactory() *SQL {
 
 // Clear deletes all objects from Query and Cache structures
 func (d *SQL) Clear() *SQL {
-	d.Query = Query{}
-	d.Cache = Cache{}
+	d.Query.Clear()
+	d.Cache.Clear()
 
 	return d
-}
-
-func (d *SQL) clearCache() *SQL {
-	d.Cache = Cache{}
-
-	return d
-}
-
-func (d *SQL) dropLastKey() {
-	if len(d.Cache.Keys) > 0 {
-		d.Cache.Keys = d.Cache.Keys[:len(d.Cache.Keys)-1]
-	}
-}
-
-func (d *SQL) dropKeys() {
-	d.Cache.Keys = []string{}
 }
 
 func (d *SQL) getObj(k string, o interface{}) (interface{}, bool) {
+	// The object is either a map or an array.
+	// If isMap returns false then check the array
 	obj, isMap := o.(map[interface{}]interface{})
-	if !isMap {
+	if !isMap && o != nil {
 		return d.getArrayObject(k, o)
 	}
 
@@ -76,31 +61,25 @@ func (d *SQL) getObj(k string, o interface{}) (interface{}, bool) {
 			return thisObj, true
 		}
 
-		if thisObjMap, isMap := thisObj.(map[interface{}]interface{}); isMap {
-			if objFinal, found := d.getObj(k, thisObjMap); found {
-				return objFinal, found
-			}
-			d.dropLastKey()
-			continue
+		// Call self again
+		if objFinal, found := d.getObj(k, thisObj); found {
+			return objFinal, found
 		}
-
-		if arrayObj, found := d.getArrayObject(k, thisObj); found {
-			return arrayObj, found
-		}
-		d.dropLastKey()
+		d.Cache.dropLastKey()
 	}
 	return nil, false
 }
 
 func (d *SQL) getArrayObject(k string, o interface{}) (interface{}, bool) {
-	if arrayObj, isArray := o.([]interface{}); isArray {
-		return d.loopArray(k, arrayObj)
+	// This is always called after object has been
+	// checked if it is a map. If isArray is false then
+	// the object is neither and we should return false
+	// since we do not support the required operation
+	arrayObj, isArray := o.([]interface{})
+	if !isArray {
+		return nil, false
 	}
-	return nil, false
-}
-
-func (d *SQL) loopArray(k string, o []interface{}) (interface{}, bool) {
-	for _, thisArrayObj := range o {
+	for _, thisArrayObj := range arrayObj {
 		if arrayObjFinal, found := d.getObj(k, thisArrayObj); found {
 			return arrayObjFinal, found
 		}
@@ -108,12 +87,24 @@ func (d *SQL) loopArray(k string, o []interface{}) (interface{}, bool) {
 	return nil, false
 }
 
+func (d *SQL) getIndex(k string) (int, error) {
+	if !strings.HasPrefix(k, "[") || !strings.HasSuffix(k, "]") {
+		return 0, wrapErr(fmt.Errorf(notAnIndex, k), getFn())
+	}
+
+	intVar, err := strconv.Atoi(k[1 : len(k)-1])
+	if err != nil {
+		return 0, wrapErr(err, getFn())
+	}
+	return intVar, nil
+}
+
 func (d *SQL) getFromIndex(k []string, o interface{}) (interface{}, error) {
 	if getObjectType(o) != arrayObj {
 		return nil, wrapErr(errors.New(notArrayObj), getFn())
 	}
 
-	i, err := getIndex(k[0])
+	i, err := d.getIndex(k[0])
 	if err != nil {
 		return nil, wrapErr(err, getFn())
 	}
@@ -147,18 +138,19 @@ func (d *SQL) getPath(k []string, o interface{}) (interface{}, error) {
 	}
 
 	for thisKey, thisObj := range obj {
-		if thisKey == k[0] {
-			d.Cache.Keys = append(d.Cache.Keys, k[0])
-			if len(k) == 1 {
-				return thisObj, nil
-			}
-
-			objFinal, err := d.getPath(k[1:], thisObj)
-			if err != nil {
-				return nil, wrapErr(err, getFn())
-			}
-			return objFinal, nil
+		if thisKey != k[0] {
+			continue
 		}
+		d.Cache.Keys = append(d.Cache.Keys, k[0])
+		if len(k) == 1 {
+			return thisObj, nil
+		}
+
+		objFinal, err := d.getPath(k[1:], thisObj)
+		if err != nil {
+			return nil, wrapErr(err, getFn())
+		}
+		return objFinal, nil
 	}
 
 	return nil, wrapErr(fmt.Errorf(keyDoesNotExist, k[0]), getFn())
@@ -188,13 +180,13 @@ func (d *SQL) delPath(k string, o interface{}) error {
 		return nil
 	}
 
-	d.dropKeys()
+	d.Cache.dropKeys()
 	obj, err := d.getPath(keys[:len(keys)-1], o)
 	if err != nil {
 		return wrapErr(err, getFn())
 	}
 
-	d.dropKeys()
+	d.Cache.dropKeys()
 	if !d.deleteItem(keys[len(keys)-1], obj) {
 		return wrapErr(fmt.Errorf(keyDoesNotExist, k), getFn())
 	}
@@ -223,7 +215,7 @@ func (d *SQL) get(k string, o interface{}) ([]string, error) {
 		if err := d.delPath(key, d.Cache.V1); err != nil {
 			return d.Query.KeysFound, wrapErr(err, getFn())
 		}
-		d.dropKeys()
+		d.Cache.dropKeys()
 	}
 
 	return d.Query.KeysFound, nil
@@ -264,22 +256,22 @@ func (d *SQL) upsertRecursive(k []string, o, v interface{}) error {
 	}
 
 	for thisKey, thisObj := range obj {
-		if thisKey == k[0] {
-			if len(k) > 1 {
-				return wrapErr(d.upsertRecursive(k[1:], thisObj, v), getFn())
-			}
-
-			switch getObjectType(thisObj) {
-			case mapObj:
-				for kn := range thisObj.(map[interface{}]interface{}) {
-					delete(thisObj.(map[interface{}]interface{}), kn)
-				}
-			case arrayObj:
-				thisObj = nil
-			}
-
-			break
+		if thisKey != k[0] {
+			continue
 		}
+
+		if len(k) > 1 {
+			return wrapErr(d.upsertRecursive(k[1:], thisObj, v), getFn())
+		}
+
+		switch getObjectType(thisObj) {
+		case mapObj:
+			deleteMap(thisObj)
+		case arrayObj:
+			thisObj = nil
+		}
+
+		break
 	}
 
 	obj[k[0]] = make(map[interface{}]interface{})
