@@ -14,9 +14,9 @@ import (
 // v1 & v2 are common interface{} placeholders while keys is used by
 // path discovery methods to keep track and derive the right path.
 type Cache struct {
-	V1   interface{}
-	V2   int
-	Keys []string
+	V1, V2     interface{}
+	C1, C2, C3 int
+	Keys       []string
 }
 
 // Query hosts results from SQL methods
@@ -241,19 +241,18 @@ func (d *SQL) getFirst(k string, o interface{}) (interface{}, error) {
 		return nil, wrapErr(fmt.Errorf(keyDoesNotExist, k), getFn())
 	}
 
+	d.Cache.C1 = len(strings.Split(obj[0], "."))
 	if len(obj) == 1 {
 		return d.getPath(strings.Split(obj[0], "."), o)
 	}
-
-	for i, key := range obj[1:] {
-		d.dropKeys()
-		if len(strings.Split(key, ".")) < len(strings.Split(obj[0], ".")) {
-			d.dropKeys()
-			d.Cache.V2 = i
+	for i, key := range obj {
+		if len(strings.Split(key, ".")) < d.Cache.C1 {
+			d.Cache.C1 = len(strings.Split(key, "."))
+			d.Cache.C2 = i
 		}
 	}
 
-	return d.getPath(strings.Split(obj[d.Cache.V2], "."), o)
+	return d.getPath(strings.Split(obj[d.Cache.C2], "."), o)
 }
 
 func (d *SQL) upsertRecursive(k []string, o, v interface{}) error {

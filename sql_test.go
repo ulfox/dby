@@ -165,8 +165,8 @@ func TestGetSingle(t *testing.T) {
 	err = state.Upsert(
 		"path-1",
 		map[string][]string{
-			"key-3": {"value-1"},
-			"key-4": {"value-2"},
+			"key-3": {"value-3"},
+			"key-4": {"value-4"},
 		},
 	)
 
@@ -174,11 +174,25 @@ func TestGetSingle(t *testing.T) {
 
 	val, err = state.GetFirst("key-3")
 	assert.Equal(t, err, nil)
-	assert.Equal(t, val, []interface{}{"value-1"})
+	assert.Equal(t, val, []interface{}{"value-3"})
 
 	val, err = state.GetFirst("key-4")
 	assert.Equal(t, err, nil)
-	assert.Equal(t, val, []interface{}{"value-2"})
+	assert.Equal(t, val, []interface{}{"value-4"})
+	err = state.Upsert(
+		"key-3",
+		map[string][]string{
+			"key-5": {"value-5"},
+			"key-6": {"value-6"},
+		},
+	)
+
+	assert.Equal(t, err, nil)
+
+	val, err = state.GetFirst("key-3")
+	assert.Equal(t, err, nil)
+	assert.Equal(t, val.(map[interface{}]interface{})["key-5"].([]interface{})[0], "value-5")
+	assert.Equal(t, val.(map[interface{}]interface{})["key-6"].([]interface{})[0], "value-6")
 
 	err = os.Remove(path)
 	assert.Equal(t, err, nil)
