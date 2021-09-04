@@ -60,17 +60,17 @@ func main() {
 Insert a map to the local yaml file.
 
 ```go
-	err = state.Upsert(
-		"some.path",
-		map[string]string{
-			"key-1": "value-1",
-			"key-2": "value-2",
-		},
-	)
+err = state.Upsert(
+	"some.path",
+	map[string]string{
+		"key-1": "value-1",
+		"key-2": "value-2",
+	},
+)
 
-	if err != nil {
-		logger.Fatalf(err.Error())
-	}
+if err != nil {
+	logger.Fatalf(err.Error())
+}
 ```
 
 ### Query DB
@@ -80,11 +80,11 @@ Insert a map to the local yaml file.
 Get the value of the first key in the hierarchy (if any)
 
 ```go
-	val, err := state.GetFirst("key-1")
-	if err != nil {
-		logger.Fatalf(err.Error())
-	}
-	logger.Info(val)
+val, err := state.GetFirst("key-1")
+if err != nil {
+	logger.Fatalf(err.Error())
+}
+logger.Info(val)
 ```
 
 For example if we have the following structure
@@ -105,11 +105,11 @@ Get all they keys (if any). This returns the full path for the key,
 not the key values. To get the values check the next section **GetPath**
 
 ```go
-	keys, err := state.Get("key-1")
-	if err != nil {
-		logger.Fatalf(err.Error())
-	}
-	logger.Info(keys)
+keys, err := state.Get("key-1")
+if err != nil {
+	logger.Fatalf(err.Error())
+}
+logger.Info(keys)
 ```
 
 From the previous example, this query would have returned
@@ -133,11 +133,11 @@ key-1:
 Then to get someValue, issue
 
 ```go
-	keyPath, err := state.GetPath("key-1.key-2.key-3")
-	if err != nil {
-		logger.Fatalf(err.Error())
-	}
-	logger.Info(keyPath)
+keyPath, err := state.GetPath("key-1.key-2.key-3")
+if err != nil {
+	logger.Fatalf(err.Error())
+}
+logger.Info(keyPath)
 ```
 
 #### Query Path with Arrays
@@ -156,11 +156,11 @@ key-1:
 To get the value of `key-4`, issue
 
 ```go
-	keyPath, err := state.GetPath("key-1.key-2.[0].key-3.key-4")
-	if err != nil {
-		logger.Fatalf(err.Error())
-	}
-	logger.Info(keyPath)
+keyPath, err := state.GetPath("key-1.key-2.[0].key-3.key-4")
+if err != nil {
+	logger.Fatalf(err.Error())
+}
+logger.Info(keyPath)
 ```
 
 ##### With trailing array
@@ -176,11 +176,11 @@ key-1:
 To get the first index of `key-2`, issue
 
 ```
-	keyPath, err := state.GetPath("key-1.key-2.[0]")
-	if err != nil {
-		logger.Fatalf(err.Error())
-	}
-	logger.Info(keyPath)
+keyPath, err := state.GetPath("key-1.key-2.[0]")
+if err != nil {
+	logger.Fatalf(err.Error())
+}
+logger.Info(keyPath)
 ```
 
 ### Delete Key By Path
@@ -189,8 +189,8 @@ To delete a single key for a given path, e.g. key-2
 from the example above, issue
 
 ```go
-	err = state.Delete("key-1.key-2")
-	if err != nil {
-		logger.Fatalf(err.Error())
-	}
+err = state.Delete("key-1.key-2")
+if err != nil {
+	logger.Fatalf(err.Error())
+}
 ```
