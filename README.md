@@ -1,7 +1,6 @@
 ## DB Yaml
 
-Simple DB using yaml. A project that for managing the 
-content of yaml files.
+Simple DB using yaml. A project for managing the content of yaml files.
 
 Table of Contents
 =================
