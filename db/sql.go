@@ -34,7 +34,7 @@ type SQL struct {
 func NewSQLFactory() *SQL {
 	sql := &SQL{
 		Query: Query{},
-		Cache: Cache{},
+		Cache: NewCacheFactory(),
 	}
 	return sql
 }
@@ -160,7 +160,22 @@ func (d *SQL) getPath(k []string, o interface{}) (interface{}, error) {
 	return nil, wrapErr(fmt.Errorf(keyDoesNotExist, k[0]), getFn())
 }
 
+func (d *SQL) deleteArrayItem(k string, o interface{}) bool {
+	for ki, kn := range o.([]interface{}) {
+		if kn.(map[interface{}]interface{})[k] != nil {
+			o.([]interface{})[ki] = make(map[interface{}]interface{})
+			return true
+		}
+	}
+	return false
+}
+
 func (d *SQL) deleteItem(k string, o interface{}) bool {
+	_, ok := o.(map[interface{}]interface{})
+	if !ok {
+		return d.deleteArrayItem(k, o)
+	}
+
 	for kn := range o.(map[interface{}]interface{}) {
 		if kn.(string) == k {
 			delete(o.(map[interface{}]interface{}), kn)
@@ -228,36 +243,82 @@ func (d *SQL) get(k string, o interface{}) ([]string, error) {
 	return d.Query.KeysFound, nil
 }
 
+func (d *SQL) getAnyPath(k []string, o interface{}) (interface{}, error) {
+	if err := checkKeyPath(k); err != nil {
+		return nil, wrapErr(err, getFn())
+	}
+
+	obj, err := interfaceToMap(o)
+	if err != nil {
+		for _, j := range o.([]interface{}) {
+			if j.(map[interface{}]interface{})[k[0]] == nil {
+				continue
+			}
+			if len(k) == 1 {
+				return j.(map[interface{}]interface{})[k[0]], nil
+			}
+
+			path, err := d.getAnyPath(k, j)
+			return path, wrapErr(err, getFn())
+		}
+		return nil, nil
+	}
+
+	if len(k) == 0 {
+		return nil, wrapErr(fmt.Errorf(keyDoesNotExist, k[0]), getFn())
+	}
+
+	for thisKey, thisObj := range obj {
+		if thisKey != k[0] {
+			continue
+		}
+		d.Cache.Keys = append(d.Cache.Keys, k[0])
+		if len(k) == 1 {
+			return thisObj, nil
+		}
+
+		objFinal, err := d.getAnyPath(k[1:], thisObj)
+		if err != nil {
+			return nil, wrapErr(err, getFn())
+		}
+		return objFinal, nil
+	}
+
+	return nil, wrapErr(fmt.Errorf(keyDoesNotExist, k[0]), getFn())
+}
+
 func (d *SQL) getFirst(k string, o interface{}) (interface{}, error) {
 	d.Clear()
 
-	obj, err := d.get(k, o)
+	keys, err := d.get(k, o)
 	if err != nil {
 		return nil, wrapErr(fmt.Errorf(keyDoesNotExist, k), getFn())
 	}
 
-	if len(obj) == 0 {
+	if len(keys) == 0 {
 		return nil, wrapErr(fmt.Errorf(keyDoesNotExist, k), getFn())
 	}
 
-	keySlice := strings.Split(obj[0], ".")
+	keySlice := strings.Split(keys[0], ".")
 	if err := checkKeyPath(keySlice); err != nil {
 		return nil, wrapErr(err, getFn())
 	}
 
 	d.Cache.C1 = len(keySlice)
-	if len(obj) == 1 {
-		return d.getPath(keySlice, o)
+	if len(keys) == 1 {
+		path, err := d.getAnyPath(keySlice, o)
+		return path, wrapErr(err, getFn())
 	}
 
-	for i, key := range obj {
+	for i, key := range keys[1:] {
 		if len(strings.Split(key, ".")) < d.Cache.C1 {
 			d.Cache.C1 = len(strings.Split(key, "."))
-			d.Cache.C2 = i
+			d.Cache.C2 = i + 1
 		}
 	}
 
-	return d.getPath(strings.Split(obj[d.Cache.C2], "."), o)
+	path, err := d.getAnyPath(strings.Split(keys[d.Cache.C2], "."), o)
+	return path, wrapErr(err, getFn())
 }
 
 func (d *SQL) upsertRecursive(k []string, o, v interface{}) error {

@@ -136,8 +136,8 @@ func TestUpsert(t *testing.T) {
 	assert.Equal(t, err, nil)
 }
 
-// TestGetSingle run unit tests on GetSingle key
-func TestGetSingle(t *testing.T) {
+// TestGetFirst run unit tests on GetSingle key
+func TestGetFirst(t *testing.T) {
 	t.Parallel()
 
 	path := ".test/db-query.yaml"
@@ -193,6 +193,37 @@ func TestGetSingle(t *testing.T) {
 	assert.Equal(t, err, nil)
 	assert.Equal(t, val.(map[interface{}]interface{})["key-5"].([]interface{})[0], "value-5")
 	assert.Equal(t, val.(map[interface{}]interface{})["key-6"].([]interface{})[0], "value-6")
+
+	err = state.Upsert(
+		"test",
+		map[string]string{},
+	)
+	assert.Equal(t, err, nil)
+	err = state.Upsert(
+		"key-3",
+		map[string][]string{},
+	)
+	assert.Equal(t, err, nil)
+	err = state.Upsert(
+		"path-1",
+		map[string][]string{},
+	)
+	assert.Equal(t, err, nil)
+	err = state.Upsert(
+		"to.array-10",
+		map[string][]map[string]int{
+			"key-10": {
+				{"key-20": 20},
+				{"key-30": 30},
+				{"key-40": 40},
+			},
+		},
+	)
+	assert.Equal(t, err, nil)
+
+	val, err = state.GetFirst("key-30")
+	assert.Equal(t, err, nil)
+	assert.Equal(t, val, 30)
 
 	err = os.Remove(path)
 	assert.Equal(t, err, nil)

@@ -17,6 +17,13 @@ Table of Contents
         - [Without trailing array](#without-trailing-array)
         - [With trailing array](#with-trailing-array)
     * [Delete Key By Path](#delete-key-by-path)
+	* [Convert Utils](#convert-utils)
+      + [Get map of strings from interface](#get-map-of-strings-from-interface)
+        - [Get map directly from a GetPath object](#get-map-directly-from-a-getpath-object)
+		- [Get map manually](#get-map-manually)
+	  + [Get array of string from interface](#get-array-of-string-from-interface)
+        - [Get array directly from a GetPath object](#get-array-directly-from-a-getpath-object)
+		- [Get array manually](#get-array-manually)
 
 ## Features
 
@@ -193,4 +200,135 @@ err = state.Delete("key-1.key-2")
 if err != nil {
 	logger.Fatalf(err.Error())
 }
+```
+
+### Convert Utils
+
+Convert simply automate the need to
+explicitly do assertion each time we need to access
+an interface object.
+
+Let us assume we have the following YAML structure
+
+```yaml
+
+to:
+  array-1:
+    key-1:
+    - key-2: 2
+    - key-3: 3
+    - key-4: 4
+  array-2:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  array-3:
+  - key-1: 1
+  - key-2: 2
+
+```
+
+#### Get map of strings from interface
+
+We can do this in two ways, get object by giving a path and assert the interface to `map[string]string`, or work manually our way to the object
+
+##### Get map directly from a GetPath object
+
+To get map **key-2: 2**, first get object via GetPath
+
+```go
+
+obj, err := state.GetPath("to.array-1.key-1.[0]")
+if err != nil {
+	logger.Fatalf(err.Error())
+}
+logger.Info(val)
+
+```
+
+Next, assert **obj** as `map[string]string`
+
+```go
+
+assertData := db.NewConvertFactory()
+
+assertData.Input(val)
+if assertData.Error != nil {
+	logger.Fatalf(assertData.Error.Error())
+}
+vMap := assertData.GetMap()
+logger.Info(vMap["key-2"])
+
+```
+
+##### Get map manually
+
+We can get the map manually by using only **Convert** operations
+
+```go
+
+assertData := db.NewConvertFactory()
+
+assertData.Input(state.Data).
+	Key("to").
+	Key("array-1").
+	Key("key-1").Index(0)
+if assertData.Error != nil {
+	logger.Fatalf(assertData.Error.Error())
+}
+vMap := assertData.GetMap()
+logger.Info(vMap["key-2"])
+
+```
+
+#### Get array of string from interface
+
+Again here we can do it two ways as with the map example
+
+##### Get array directly from a GetPath object
+
+To get **array-2** as **[]string**, first get object via GetPath
+
+```go
+
+obj, err = state.GetPath("to.array-2")
+if err != nil {
+	logger.Fatalf(err.Error())
+}
+logger.Info(obj)
+
+```
+
+Next, assert **obj** as `[]string`
+
+```go
+
+assertData := db.NewConvertFactory()
+
+assertData.Input(obj)
+if assertData.Error != nil {
+	logger.Fatalf(assertData.Error.Error())
+}
+vArray := assertData.GetArray()
+logger.Info(vArray)
+
+```
+
+##### Get array manually
+
+We can get the array manually by using only **Convert** operations
+
+```go
+
+assertData.Input(state.Data).
+	Key("to").
+	Key("array-2")
+if assertData.Error != nil {
+	logger.Fatalf(assertData.Error.Error())
+}
+vArray := assertData.GetArray()
+logger.Info(vArray)
+
 ```

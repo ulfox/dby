@@ -27,5 +27,10 @@ func getObjectType(o interface{}) objectType {
 		return 2
 	}
 
+	_, isMapStringInterface := o.(map[string]interface{})
+	if isMapStringInterface {
+		return 5
+	}
+
 	return unknownObj
 }
