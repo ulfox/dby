@@ -343,37 +343,122 @@ func TestGet(t *testing.T) {
 	assert.Equal(t, err, nil)
 
 	err = state.Upsert(
-		"test.path",
-		map[string]map[string]string{
-			"key-1": {
-				"v": "1",
+		"path-1",
+		[]map[string][]map[string]string{
+			{
+				"subpath-01": {
+					{"k01": "v01"},
+				},
+				"subpath-02": {
+					{"k02": "v02"},
+				},
 			},
-			"key-2": {
-				"key-1": "1",
+			{
+				"subpath-11": {
+					{"k11": "v11"},
+				},
+				"subpath-12": {
+					{"k12": "v12"},
+				},
 			},
 		},
+	)
+	assert.Equal(t, err, nil)
+
+	assertData := db.NewConvertFactory()
+	assertData.Input(state.Data)
+
+	assertData.
+		Key("path-1").
+		Index(0).
+		Key("subpath-01").
+		Index(0)
+
+	assert.Equal(t, assertData.Error, nil)
+	assert.Equal(t, assertData.GetMap()["k01"], "v01")
+
+	obj, err := state.GetPath("path-1.[1].subpath-11.[0]")
+	assert.Equal(t, err, nil)
+	assertData.Input(obj)
+	assert.Equal(t, assertData.GetMap()["k11"], "v11")
+
+	assert.Equal(t, assertData.Error, nil)
+
+	err = os.Remove(path)
+	assert.Equal(t, err, nil)
+}
+
+// TestGeneric run generic tests for all scenarios
+func TestGeneric(t *testing.T) {
+	t.Parallel()
+
+	path := ".test/db-with-empties.yaml"
+	state, err := db.NewStorageFactory(path)
+	assert.Equal(t, err, nil)
+
+	err = state.Upsert(
+		".someKey",
+		map[string]string{
+			"key-1": "value-1",
+			"key-2": "value-2",
+		},
+	)
+
+	assert.NotEqual(t, err, nil)
+
+	err = state.Upsert(
+		".",
+		map[string]string{
+			"key-1": "value-1",
+			"key-2": "value-2",
+		},
+	)
+
+	assert.NotEqual(t, err, nil)
+
+	err = state.Upsert(
+		"k01",
+		nil,
 	)
 
 	assert.Equal(t, err, nil)
 
 	err = state.Upsert(
-		"path-1",
-		map[string][]string{
-			"key-1": {"value-1"},
-			"key-2": {"value-2"},
+		"k",
+		[]map[string][]map[string]string{
+			{
+				"0": {
+					{"1": "v03"},
+				},
+				"2": {
+					{"03": "v05"},
+				},
+			},
+			{
+				"3": {
+					{"2": "v11"},
+				},
+				"4": {
+					{"3": "v12"},
+				},
+			},
 		},
 	)
+	assert.Equal(t, err, nil)
+	val, err := state.GetFirst("1")
+	assert.Equal(t, err, nil)
+	assert.Equal(t, val, "v03")
+	assertData := db.NewConvertFactory()
 
+	val, err = state.GetFirst("03")
 	assert.Equal(t, err, nil)
 
-	keys, err := state.Get("key-1")
-	assert.Equal(t, err, nil)
-	assert.Equal(t, len(keys), 3)
+	assertData.Input(val)
+	assert.Equal(t, assertData.Cache.V1, "v05")
 
-	for _, j := range keys {
-		_, err = state.GetPath(j)
-		assert.Equal(t, err, nil)
-	}
+	keys, err := state.Get("1")
+	assert.Equal(t, err, nil)
+	assert.Equal(t, len(keys), 1)
 
 	err = os.Remove(path)
 	assert.Equal(t, err, nil)
