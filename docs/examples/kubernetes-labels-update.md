@@ -9,8 +9,6 @@ In this example we will import the manifest and update the version for all docum
 package main
 
 import (
-	"fmt"
-
 	"github.com/sirupsen/logrus"
 	"github.com/ulfox/dby/db"
 )
@@ -21,7 +19,7 @@ func main() {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	err = state.ImportDocs("docs/examples/manifests/deployment.yaml")
+	err = state.ImportDocs("manifests/deployment.yaml")
 	if err != nil {
 		logger.Fatal(err)
 	}
