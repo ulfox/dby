@@ -108,6 +108,21 @@ func (s *Storage) SetName(n string, i int) error {
 	return nil
 }
 
+// DeleteDoc will the document with the given index
+func (s *Storage) DeleteDoc(i int) error {
+	if i > len(s.Data)-1 {
+		return wrapErr(fmt.Errorf(libOutOfIndex), getFn())
+	}
+
+	s.Data = append(s.Data[:i], s.Data[i+1:]...)
+
+	if s.AD == i {
+		s.AD = 0
+	}
+
+	return nil
+}
+
 // Switch will change Active Document (AD) to the given index
 func (s *Storage) Switch(i int) error {
 	if i > len(s.Data)-1 {
@@ -145,7 +160,7 @@ func (s *Storage) SwitchDoc(n string) error {
 }
 
 // ImportDocs for importing documents
-func (s *Storage) ImportDocs(path string) error {
+func (s *Storage) ImportDocs(path string, o ...bool) error {
 	impf, err := ioutil.ReadFile(path)
 	if err != nil {
 		return wrapErr(err, getFn())
@@ -154,6 +169,12 @@ func (s *Storage) ImportDocs(path string) error {
 	var dataArray []interface{}
 	var counter int
 	var data interface{}
+
+	if len(o) > 0 {
+		if o[0] {
+			s.Data = nil
+		}
+	}
 
 	data = nil
 	dec := yaml.NewDecoder(bytes.NewReader(impf))

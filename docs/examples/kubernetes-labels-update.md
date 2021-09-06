@@ -19,7 +19,12 @@ func main() {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	err = state.ImportDocs("manifests/deployment.yaml")
+
+	// passing true is optional. When we pass it, we instruct the import method
+	// overwrite the content of the db (local/db.yaml). If we do not pass true,
+	// the local/db.yaml file will also have one additional document which is
+	// an empty {} doc that is created during init.
+	err = state.ImportDocs("manifests/deployment.yaml", true)
 	if err != nil {
 		logger.Fatal(err)
 	}
