@@ -501,18 +501,17 @@ func TestMultiDoc(t *testing.T) {
 	path := ".test/db-multidoc.yaml"
 	state, err := db.NewStorageFactory(path)
 	assert.Equal(t, err, nil)
-	// assert.Equal(t, len(state.Data), 1)
+	assert.Equal(t, len(state.Data), 1)
 
-	// err = state.AddDoc()
+	err = state.AddDoc()
 
-	// assert.Equal(t, err, nil)
-	// assert.Equal(t, len(state.Data), 2)
-
-	// assert.Equal(t, state.AD, 1)
-	// state.Switch(0)
-	// assert.Equal(t, state.AD, 0)
-
-	dataMap, err := state.FindKeysGlobal("i")
 	assert.Equal(t, err, nil)
-	fmt.Println(dataMap)
+	assert.Equal(t, len(state.Data), 2)
+
+	assert.Equal(t, state.AD, 1)
+	state.Switch(0)
+	assert.Equal(t, state.AD, 0)
+
+	err = os.Remove(path)
+	assert.Equal(t, err, nil)
 }
