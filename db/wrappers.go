@@ -65,6 +65,29 @@ func (s *Storage) GetFirst(k string) (interface{}, error) {
 	}
 
 	return obj, nil
+
+}
+
+// GetFirstGlobal does the same as GetFirst but for all docs.
+// Instead of returning an interface it returns a map with keys
+// the index of the doc that a key was found and value the value of the key
+func (s *Storage) GetFirstGlobal(k string) (map[int]interface{}, error) {
+	found := make(map[int]interface{})
+
+	c := s.AD
+	for j := range s.Data {
+		s.AD = j
+
+		obj, err := s.SQL.getFirst(k, s.Data[s.AD])
+		if err != nil {
+			continue
+		}
+		found[s.AD] = obj
+	}
+
+	s.AD = c
+
+	return found, nil
 }
 
 // Get is a SQL wrapper that finds all the paths for a given
@@ -99,6 +122,28 @@ func (s *Storage) FindKeys(k string) ([]string, error) {
 	}
 
 	return obj, nil
+}
+
+// FindKeysGlobal does the same as FindKeys but for all docs.
+// Instead of returning a list of keys it returns a map with indexes
+// from the docs and value an array of paths that was found
+func (s *Storage) FindKeysGlobal(k string) (map[int][]string, error) {
+	found := make(map[int][]string)
+
+	c := s.AD
+	for j := range s.Data {
+		s.AD = j
+
+		obj, err := s.SQL.get(k, s.Data[s.AD])
+		if err != nil || len(obj) == 0 {
+			continue
+		}
+		found[s.AD] = obj
+	}
+
+	s.AD = c
+
+	return found, nil
 }
 
 // GetPath is a SQL wrapper that returns the value for a given
