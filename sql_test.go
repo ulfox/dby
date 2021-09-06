@@ -374,15 +374,22 @@ func TestGet(t *testing.T) {
 		Key("subpath-01").
 		Index(0)
 
-	assert.Equal(t, assertData.Error, nil)
-	assert.Equal(t, assertData.GetMap()["k01"], "v01")
+	assert.Equal(t, assertData.GetError(), nil)
+	m, err := assertData.GetMap()
+	assert.Equal(t, assertData.GetError(), nil)
+	assert.Equal(t, err, nil)
+
+	assert.Equal(t, m["k01"], "v01")
 
 	obj, err := state.GetPath("path-1.[1].subpath-11.[0]")
 	assert.Equal(t, err, nil)
 	assertData.Input(obj)
-	assert.Equal(t, assertData.GetMap()["k11"], "v11")
+	m, err = assertData.GetMap()
+	assert.Equal(t, assertData.GetError(), nil)
+	assert.Equal(t, err, nil)
+	assert.Equal(t, m["k11"], "v11")
 
-	assert.Equal(t, assertData.Error, nil)
+	assert.Equal(t, assertData.GetError(), nil)
 
 	err = os.Remove(path)
 	assert.Equal(t, err, nil)
@@ -392,7 +399,7 @@ func TestGet(t *testing.T) {
 func TestGeneric(t *testing.T) {
 	t.Parallel()
 
-	path := ".test/db-with-empties.yaml"
+	path := ".test/db-generic.yaml"
 	state, err := db.NewStorageFactory(path)
 	assert.Equal(t, err, nil)
 
@@ -445,6 +452,7 @@ func TestGeneric(t *testing.T) {
 		},
 	)
 	assert.Equal(t, err, nil)
+
 	val, err := state.GetFirst("1")
 	assert.Equal(t, err, nil)
 	assert.Equal(t, val, "v03")
@@ -454,12 +462,53 @@ func TestGeneric(t *testing.T) {
 	assert.Equal(t, err, nil)
 
 	assertData.Input(val)
-	assert.Equal(t, assertData.Cache.V1, "v05")
+	s, err := assertData.GetString()
+	assert.Equal(t, assertData.GetError(), nil)
+	assert.Equal(t, err, nil)
+	assert.Equal(t, s, "v05")
 
 	keys, err := state.Get("1")
 	assert.Equal(t, err, nil)
 	assert.Equal(t, len(keys), 1)
 
+	err = state.Upsert(
+		"i",
+		[]int{
+			1,
+			2,
+			3,
+		},
+	)
+	assert.Equal(t, err, nil)
+
+	val, err = state.GetFirst("i")
+	assert.Equal(t, err, nil)
+	assertData.Input(val)
+
+	i, err := assertData.GetArray()
+	assert.Equal(t, assertData.GetError(), nil)
+	assert.Equal(t, err, nil)
+	assert.Equal(t, len(i), 3)
+
 	err = os.Remove(path)
 	assert.Equal(t, err, nil)
+}
+
+// TestMultiDoc run tests for docs
+func TestMultiDoc(t *testing.T) {
+	t.Parallel()
+
+	path := ".test/db-multidoc.yaml"
+	state, err := db.NewStorageFactory(path)
+	assert.Equal(t, err, nil)
+	assert.Equal(t, len(state.Data), 1)
+
+	err = state.AddDoc()
+
+	assert.Equal(t, err, nil)
+	assert.Equal(t, len(state.Data), 2)
+
+	assert.Equal(t, state.AD, 1)
+	state.Switch(0)
+	assert.Equal(t, state.AD, 0)
 }

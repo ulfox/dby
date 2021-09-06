@@ -120,7 +120,7 @@ func (s *Storage) Switch(i int) error {
 // AddDoc will add a new document to the stack and will switch
 // Active Document index to that document
 func (s *Storage) AddDoc() error {
-	s.AD++
+	s.AD = len(s.Data)
 	s.Data = append(s.Data, make(map[interface{}]interface{}))
 	return s.stateReload()
 }
@@ -198,14 +198,12 @@ func (s *Storage) Read() error {
 	s.Data = nil
 	s.Data = make([]interface{}, 0)
 
-	var counter int
 	var data interface{}
 	dec := yaml.NewDecoder(bytes.NewReader(f))
 	for {
-		s.Data = append(s.Data, data)
-		err := dec.Decode(&s.Data[counter])
+		err := dec.Decode(&data)
 		if err == nil {
-			counter++
+			s.Data = append(s.Data, data)
 			data = nil
 			continue
 		}
@@ -235,8 +233,6 @@ func (s *Storage) Write() error {
 
 	for _, j := range s.Data {
 		if j == nil {
-			continue
-		} else if v, ok := j.(map[interface{}]interface{}); ok && len(v) == 0 {
 			continue
 		}
 
