@@ -17,6 +17,9 @@ const (
 	arrayOutOfRange = "index value (%s) is bigger than the length (%s) of the array to be indexed"
 	invalidKeyPath  = "the key||path [%s] that was given is not valid"
 	emptyKey        = "path [%s] contains an empty key"
+	libOutOfIndex   = "lib out of index"
+	docNotExists    = "doc [%s] does not exist in lib"
+	fieldNotString  = "[%s] with value [%s] is not a string"
 )
 
 func wrapErr(e error, s string) error {

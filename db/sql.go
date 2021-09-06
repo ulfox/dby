@@ -40,39 +40,39 @@ func NewSQLFactory() *SQL {
 }
 
 // Clear deletes all objects from Query and Cache structures
-func (d *SQL) Clear() *SQL {
-	d.Query.Clear()
-	d.Cache.Clear()
+func (s *SQL) Clear() *SQL {
+	s.Query.Clear()
+	s.Cache.Clear()
 
-	return d
+	return s
 }
 
-func (d *SQL) getObj(k string, o interface{}) (interface{}, bool) {
+func (s *SQL) getObj(k string, o interface{}) (interface{}, bool) {
 	// The object is either a map or an array.
 	// If isMap returns false then check the array
 
 	obj, isMap := o.(map[interface{}]interface{})
 	if !isMap {
-		return d.getArrayObject(k, o)
+		return s.getArrayObject(k, o)
 	}
 
 	for thisKey, thisObj := range obj {
-		d.Cache.Keys = append(d.Cache.Keys, thisKey.(string))
+		s.Cache.Keys = append(s.Cache.Keys, thisKey.(string))
 		if thisKey == k {
 			return thisObj, true
 		}
 
 		// Call self again
-		if objFinal, found := d.getObj(k, thisObj); found {
+		if objFinal, found := s.getObj(k, thisObj); found {
 			return objFinal, found
 		}
-		d.Cache.dropLastKey()
+		s.Cache.dropLastKey()
 	}
 
 	return nil, false
 }
 
-func (d *SQL) getArrayObject(k string, o interface{}) (interface{}, bool) {
+func (s *SQL) getArrayObject(k string, o interface{}) (interface{}, bool) {
 	// This is always called after object has been
 	// checked if it is a map. If isArray is false then
 	// the object is neither and we should return false
@@ -86,19 +86,19 @@ func (d *SQL) getArrayObject(k string, o interface{}) (interface{}, bool) {
 	}
 
 	for i, thisArrayObj := range arrayObj {
-		d.Cache.Keys = append(d.Cache.Keys, "["+strconv.Itoa(i)+"]")
-		arrayObjFinal, found := d.getObj(k, thisArrayObj)
+		s.Cache.Keys = append(s.Cache.Keys, "["+strconv.Itoa(i)+"]")
+		arrayObjFinal, found := s.getObj(k, thisArrayObj)
 		if found {
 			return arrayObjFinal, found
 		}
 
-		d.Cache.dropLastKey()
+		s.Cache.dropLastKey()
 	}
 
 	return nil, false
 }
 
-func (d *SQL) getIndex(k string) (int, error) {
+func (s *SQL) getIndex(k string) (int, error) {
 	if !strings.HasPrefix(k, "[") || !strings.HasSuffix(k, "]") {
 		return 0, wrapErr(fmt.Errorf(notAnIndex, k), getFn())
 	}
@@ -110,12 +110,12 @@ func (d *SQL) getIndex(k string) (int, error) {
 	return intVar, nil
 }
 
-func (d *SQL) getFromIndex(k []string, o interface{}) (interface{}, error) {
+func (s *SQL) getFromIndex(k []string, o interface{}) (interface{}, error) {
 	if getObjectType(o) != arrayObj {
 		return nil, wrapErr(errors.New(notArrayObj), getFn())
 	}
 
-	i, err := d.getIndex(k[0])
+	i, err := s.getIndex(k[0])
 	if err != nil {
 		return nil, wrapErr(err, getFn())
 	}
@@ -132,20 +132,20 @@ func (d *SQL) getFromIndex(k []string, o interface{}) (interface{}, error) {
 	}
 
 	if len(k) > 1 {
-		return d.getPath(k[1:], o.([]interface{})[i])
+		return s.getPath(k[1:], o.([]interface{})[i])
 	}
 
 	return o.([]interface{})[i], nil
 }
 
-func (d *SQL) getPath(k []string, o interface{}) (interface{}, error) {
+func (s *SQL) getPath(k []string, o interface{}) (interface{}, error) {
 	if err := checkKeyPath(k); err != nil {
 		return nil, wrapErr(err, getFn())
 	}
 
 	obj, err := interfaceToMap(o)
 	if err != nil {
-		return d.getFromIndex(k, o)
+		return s.getFromIndex(k, o)
 	}
 
 	if len(k) == 0 {
@@ -156,12 +156,12 @@ func (d *SQL) getPath(k []string, o interface{}) (interface{}, error) {
 		if thisKey != k[0] {
 			continue
 		}
-		d.Cache.Keys = append(d.Cache.Keys, k[0])
+		s.Cache.Keys = append(s.Cache.Keys, k[0])
 		if len(k) == 1 {
 			return thisObj, nil
 		}
 
-		objFinal, err := d.getPath(k[1:], thisObj)
+		objFinal, err := s.getPath(k[1:], thisObj)
 		if err != nil {
 			return nil, wrapErr(err, getFn())
 		}
@@ -171,7 +171,7 @@ func (d *SQL) getPath(k []string, o interface{}) (interface{}, error) {
 	return nil, wrapErr(fmt.Errorf(keyDoesNotExist, k[0]), getFn())
 }
 
-func (d *SQL) deleteArrayItem(k string, o interface{}) bool {
+func (s *SQL) deleteArrayItem(k string, o interface{}) bool {
 	if o == nil {
 		return false
 	}
@@ -184,10 +184,10 @@ func (d *SQL) deleteArrayItem(k string, o interface{}) bool {
 	return false
 }
 
-func (d *SQL) deleteItem(k string, o interface{}) bool {
+func (s *SQL) deleteItem(k string, o interface{}) bool {
 	_, ok := o.(map[interface{}]interface{})
 	if !ok {
-		return d.deleteArrayItem(k, o)
+		return s.deleteArrayItem(k, o)
 	}
 
 	for kn := range o.(map[interface{}]interface{}) {
@@ -199,7 +199,7 @@ func (d *SQL) deleteItem(k string, o interface{}) bool {
 	return false
 }
 
-func (d *SQL) delPath(k string, o interface{}) error {
+func (s *SQL) delPath(k string, o interface{}) error {
 	keys := strings.Split(k, ".")
 	if err := checkKeyPath(keys); err != nil {
 		return wrapErr(err, getFn())
@@ -210,57 +210,57 @@ func (d *SQL) delPath(k string, o interface{}) error {
 	}
 
 	if len(keys) == 1 {
-		if !d.deleteItem(keys[0], o) {
+		if !s.deleteItem(keys[0], o) {
 			return wrapErr(fmt.Errorf(keyDoesNotExist, k), getFn())
 		}
 		return nil
 	}
 
-	d.Cache.dropKeys()
-	obj, err := d.getPath(keys[:len(keys)-1], o)
+	s.Cache.dropKeys()
+	obj, err := s.getPath(keys[:len(keys)-1], o)
 	if err != nil {
 		return wrapErr(err, getFn())
 	}
 
-	d.Cache.dropKeys()
-	if !d.deleteItem(keys[len(keys)-1], obj) {
+	s.Cache.dropKeys()
+	if !s.deleteItem(keys[len(keys)-1], obj) {
 		return wrapErr(fmt.Errorf(keyDoesNotExist, k), getFn())
 	}
 
 	return nil
 }
 
-func (d *SQL) get(k string, o interface{}) ([]string, error) {
+func (s *SQL) get(k string, o interface{}) ([]string, error) {
 	var err error
 	var key string
 
-	d.Clear()
-	d.Cache.V1, err = copyMap(o)
+	s.Clear()
+	s.Cache.V1, err = copyMap(o)
 	if err != nil {
 		return nil, wrapErr(err, getFn())
 	}
 
 	for {
-		if _, found := d.getObj(k, d.Cache.V1); !found {
+		if _, found := s.getObj(k, s.Cache.V1); !found {
 			break
 		}
 
-		key = strings.Join(d.Cache.Keys, ".")
-		d.Query.KeysFound = append(d.Query.KeysFound, key)
+		key = strings.Join(s.Cache.Keys, ".")
+		s.Query.KeysFound = append(s.Query.KeysFound, key)
 
-		if err := d.delPath(key, d.Cache.V1); err != nil {
-			return d.Query.KeysFound, wrapErr(err, getFn())
+		if err := s.delPath(key, s.Cache.V1); err != nil {
+			return s.Query.KeysFound, wrapErr(err, getFn())
 		}
-		d.Cache.dropKeys()
+		s.Cache.dropKeys()
 	}
 
-	return d.Query.KeysFound, nil
+	return s.Query.KeysFound, nil
 }
 
-func (d *SQL) getFirst(k string, o interface{}) (interface{}, error) {
-	d.Clear()
+func (s *SQL) getFirst(k string, o interface{}) (interface{}, error) {
+	s.Clear()
 
-	keys, err := d.get(k, o)
+	keys, err := s.get(k, o)
 	if err != nil {
 		return nil, wrapErr(err, getFn())
 	}
@@ -274,25 +274,25 @@ func (d *SQL) getFirst(k string, o interface{}) (interface{}, error) {
 		return nil, wrapErr(err, getFn())
 	}
 
-	d.Cache.C1 = len(keySlice)
+	s.Cache.C1 = len(keySlice)
 	if len(keys) == 1 {
-		path, err := d.getPath(keySlice, o)
+		path, err := s.getPath(keySlice, o)
 		return path, wrapErr(err, getFn())
 	}
 
 	for i, key := range keys[1:] {
-		if len(strings.Split(key, ".")) < d.Cache.C1 {
-			d.Cache.C1 = len(strings.Split(key, "."))
-			d.Cache.C2 = i + 1
+		if len(strings.Split(key, ".")) < s.Cache.C1 {
+			s.Cache.C1 = len(strings.Split(key, "."))
+			s.Cache.C2 = i + 1
 		}
 	}
 
-	path, err := d.getPath(strings.Split(keys[d.Cache.C2], "."), o)
+	path, err := s.getPath(strings.Split(keys[s.Cache.C2], "."), o)
 	return path, wrapErr(err, getFn())
 }
 
-func (d *SQL) upsertRecursive(k []string, o, v interface{}) error {
-	d.Clear()
+func (s *SQL) upsertRecursive(k []string, o, v interface{}) error {
+	s.Clear()
 
 	if err := checkKeyPath(k); err != nil {
 		return wrapErr(err, getFn())
@@ -309,7 +309,7 @@ func (d *SQL) upsertRecursive(k []string, o, v interface{}) error {
 		}
 
 		if len(k) > 1 {
-			return wrapErr(d.upsertRecursive(k[1:], thisObj, v), getFn())
+			return wrapErr(s.upsertRecursive(k[1:], thisObj, v), getFn())
 		}
 
 		switch getObjectType(thisObj) {
@@ -325,7 +325,7 @@ func (d *SQL) upsertRecursive(k []string, o, v interface{}) error {
 	obj[k[0]] = make(map[interface{}]interface{})
 
 	if len(k) > 1 {
-		return wrapErr(d.upsertRecursive(k[1:], obj[k[0]], v), getFn())
+		return wrapErr(s.upsertRecursive(k[1:], obj[k[0]], v), getFn())
 	}
 
 	obj[k[0]] = v
@@ -333,7 +333,7 @@ func (d *SQL) upsertRecursive(k []string, o, v interface{}) error {
 	return nil
 }
 
-func (d *SQL) mergeDBs(path string, o interface{}) error {
+func (s *SQL) mergeDBs(path string, o interface{}) error {
 	var dataNew interface{}
 
 	ok, err := fileExists(path)
@@ -358,7 +358,7 @@ func (d *SQL) mergeDBs(path string, o interface{}) error {
 	}
 
 	for kn, vn := range obj {
-		err = d.upsertRecursive(strings.Split(kn.(string), "."), o, vn)
+		err = s.upsertRecursive(strings.Split(kn.(string), "."), o, vn)
 		if err != nil {
 			return wrapErr(err, getFn())
 		}

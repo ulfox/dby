@@ -1,10 +1,13 @@
 package db
 
 import (
+	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"gopkg.in/yaml.v2"
@@ -15,7 +18,9 @@ import (
 type Storage struct {
 	sync.Mutex
 	SQL  *SQL
-	Data interface{}
+	Data []interface{}
+	Lib  map[string]int
+	AD   int
 	Path string
 }
 
@@ -24,6 +29,8 @@ func NewStorageFactory(path string) (*Storage, error) {
 	state := &Storage{
 		SQL:  NewSQLFactory(),
 		Path: path,
+		Data: make([]interface{}, 0),
+		Lib:  make(map[string]int),
 	}
 
 	stateDir := filepath.Dir(path)
@@ -38,7 +45,8 @@ func NewStorageFactory(path string) (*Storage, error) {
 	}
 
 	if !stateExists {
-		state.Data = map[string]string{}
+		state.Data = append(state.Data, map[string]string{})
+		state.AD = 0
 		state.Write()
 	}
 
@@ -53,36 +61,192 @@ func NewStorageFactory(path string) (*Storage, error) {
 	return state, nil
 }
 
-// Read for reading the local yaml file and importing it
-// in memory
-func (i *Storage) Read() error {
-	f, err := ioutil.ReadFile(i.Path)
+// SetNames can set names automatically to the documents
+// that have the queried paths.
+// input(f) is the first path that will be quieried
+// input(l) is the last path
+//
+// If a document has both paths, a name will be generated
+// and will be mapped with the document's index
+func (s *Storage) SetNames(f, l string) error {
+	for i := range s.Data {
+		s.AD = i
+		kind, err := s.GetPath(strings.ToLower(f))
+		if err != nil {
+			continue
+		}
+		name, err := s.GetPath(strings.ToLower(l))
+		if err != nil {
+			continue
+		}
+
+		sKind, ok := kind.(string)
+		if !ok {
+			wrapErr(fmt.Errorf(fieldNotString, strings.ToLower(f), kind), getFn())
+		}
+
+		sName, ok := name.(string)
+		if !ok {
+			wrapErr(fmt.Errorf(fieldNotString, strings.ToLower(l), name), getFn())
+		}
+
+		docName := fmt.Sprintf("%s/%s", strings.ToLower(sKind), strings.ToLower(sName))
+		s.Lib[docName] = i
+	}
+
+	return nil
+}
+
+// SetName adds a name for a document and maps with it the given doc index
+func (s *Storage) SetName(n string, i int) error {
+	err := s.Switch(i)
+	if err != nil {
+		return wrapErr(err, getFn())
+	}
+	s.Lib[strings.ToLower(n)] = i
+
+	return nil
+}
+
+// Switch will change Active Document (AD) to the given index
+func (s *Storage) Switch(i int) error {
+	if i > len(s.Data)-1 {
+		return wrapErr(fmt.Errorf(libOutOfIndex), getFn())
+	}
+	s.AD = i
+	return nil
+}
+
+// AddDoc will add a new document to the stack and will switch
+// Active Document index to that document
+func (s *Storage) AddDoc() error {
+	s.AD++
+	s.Data = append(s.Data, make(map[interface{}]interface{}))
+	return s.stateReload()
+}
+
+// ListDocs will return an array with all docs names
+func (s *Storage) ListDocs() []string {
+	var docs []string
+	for i := range s.Lib {
+		docs = append(docs, i)
+	}
+	return docs
+}
+
+// SwitchDoc for switching to a document using the documents name (if any)
+func (s *Storage) SwitchDoc(n string) error {
+	i, exists := s.Lib[strings.ToLower(n)]
+	if !exists {
+		return wrapErr(fmt.Errorf(docNotExists, strings.ToLower(n)), getFn())
+	}
+	s.AD = i
+	return nil
+}
+
+// ImportDocs for importing documents
+func (s *Storage) ImportDocs(path string) error {
+	impf, err := ioutil.ReadFile(path)
 	if err != nil {
 		return wrapErr(err, getFn())
 	}
 
-	i.Lock()
-	defer i.Unlock()
+	var dataArray []interface{}
+	var counter int
+	var data interface{}
 
-	return yaml.Unmarshal(f, &i.Data)
+	data = nil
+	dec := yaml.NewDecoder(bytes.NewReader(impf))
+	for {
+		dataArray = append(dataArray, data)
+		err := dec.Decode(&dataArray[counter])
+		if err == nil {
+			counter++
+			data = nil
+			continue
+		}
+
+		if err.Error() == "EOF" {
+			break
+		}
+		return wrapErr(err, getFn())
+	}
+
+	for _, j := range dataArray {
+		if j == nil {
+			continue
+		}
+		if len(j.(map[interface{}]interface{})) == 0 {
+			continue
+		}
+		s.Data = append(s.Data, j)
+	}
+	return s.stateReload()
+}
+
+// Read for reading the local yaml file and importing it
+// in memory
+func (s *Storage) Read() error {
+	f, err := ioutil.ReadFile(s.Path)
+	if err != nil {
+		return wrapErr(err, getFn())
+	}
+
+	s.Lock()
+	defer s.Unlock()
+
+	s.Data = nil
+	s.Data = make([]interface{}, 0)
+
+	var counter int
+	var data interface{}
+	dec := yaml.NewDecoder(bytes.NewReader(f))
+	for {
+		s.Data = append(s.Data, data)
+		err := dec.Decode(&s.Data[counter])
+		if err == nil {
+			counter++
+			data = nil
+			continue
+		}
+
+		if err.Error() == "EOF" {
+			break
+		}
+		return wrapErr(err, getFn())
+	}
+
+	return nil
 }
 
 // Write for writing memory content to the local yaml file
-func (i *Storage) Write() error {
-	i.Lock()
-	defer i.Unlock()
-	data, err := yaml.Marshal(&i.Data)
-	if err != nil {
-		return wrapErr(err, getFn())
-	}
+func (s *Storage) Write() error {
+	s.Lock()
+	defer s.Unlock()
 
-	wrkDir := path.Dir(i.Path)
+	wrkDir := path.Dir(s.Path)
 	f, err := ioutil.TempFile(wrkDir, ".tx.*")
 	if err != nil {
 		return wrapErr(err, getFn())
 	}
 
-	_, err = f.Write(data)
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+
+	for _, j := range s.Data {
+		if j == nil {
+			continue
+		} else if v, ok := j.(map[interface{}]interface{}); ok && len(v) == 0 {
+			continue
+		}
+
+		err := enc.Encode(j)
+		if err != nil {
+			return wrapErr(err, getFn())
+		}
+	}
+
+	_, err = f.Write(buf.Bytes())
 	if err != nil {
 		return wrapErr(err, getFn())
 	}
@@ -91,13 +255,14 @@ func (i *Storage) Write() error {
 		return wrapErr(err, getFn())
 	}
 
-	return wrapErr(os.Rename(f.Name(), i.Path), getFn())
+	return wrapErr(os.Rename(f.Name(), s.Path), getFn())
 }
 
-func (i *Storage) stateReload() error {
-	err := i.Write()
+func (s *Storage) stateReload() error {
+	err := s.Write()
 	if err != nil {
 		return wrapErr(err, getFn())
 	}
-	return wrapErr(i.Read(), getFn())
+
+	return wrapErr(s.Read(), getFn())
 }

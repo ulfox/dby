@@ -7,22 +7,33 @@ Table of Contents
 - [DB Yaml](#db-yaml)
 - [Features](#features)
 - [Usage](#usage)
-    * [Write to DB](#write-to-db)
-    * [Query DB](#query-db)
-      + [Get First Key](#get-first-key)
-      + [Search for Keys](#search-for-keys)
-    * [Query Path](#query-path)
-      + [Query Path with Arrays](#query-path-with-arrays)
-        - [Without trailing array](#without-trailing-array)
-        - [With trailing array](#with-trailing-array)
-    * [Delete Key By Path](#delete-key-by-path)
-	* [Convert Utils](#convert-utils)
+  * [Write to DB](#write-to-db)
+  * [Query DB](#query-db)
+    + [Get First Key](#get-first-key)
+    + [Search for Keys](#search-for-keys)
+  * [Query Path](#query-path)
+    + [Query Path with Arrays](#query-path-with-arrays)
+      - [Without trailing array](#without-trailing-array)
+      - [With trailing array](#with-trailing-array)
+  * [Delete Key By Path](#delete-key-by-path)
+  * [Convert Utils](#convert-utils)
       + [Get map of strings from interface](#get-map-of-strings-from-interface)
         - [Get map directly from a GetPath object](#get-map-directly-from-a-getpath-object)
-		- [Get map manually](#get-map-manually)
-	  + [Get array of string from interface](#get-array-of-string-from-interface)
+        - [Get map manually](#get-map-manually)
+      + [Get array of string from interface](#get-array-of-string-from-interface)
         - [Get array directly from a GetPath object](#get-array-directly-from-a-getpath-object)
-		- [Get array manually](#get-array-manually)
+      - [Get array manually](#get-array-manually)
+  * [Document Management](#document-management)
+      + [Add a new doc](#add-a-new-doc)
+      + [Switch Doc](#switch-doc)
+      + [Document names](#document-names)
+        - [Name documents manually](#name-documents-manually)
+        - [Name all documents automatically](#name-all-documents-automatically)
+        - [Switch between docs by name](#switch-between-docs-by-name)
+      + [Import Docs](#import-docs)
+      + [Global Upsert](#global-upsert)
+      + [Global Update](#global-update)
+
 
 ## Features
 
@@ -111,7 +122,7 @@ Get all they keys (if any). This returns the full path for the key,
 not the key values. To get the values check the next section **GetPath**
 
 ```go
-keys, err := state.Get("key-1")
+keys, err := state.FindKeys("key-1")
 if err != nil {
 	logger.Fatalf(err.Error())
 }
@@ -181,7 +192,7 @@ key-1:
 
 To get the first index of `key-2`, issue
 
-```
+```go
 keyPath, err := state.GetPath("key-1.key-2.[0]")
 if err != nil {
 	logger.Fatalf(err.Error())
@@ -331,3 +342,185 @@ vArray := assertData.GetArray()
 logger.Info(vArray)
 
 ```
+
+### Document Management
+
+DBy creates by default an array of documents called library. That is in fact an array of interfaces
+
+When initiating DBy, document 0 (index 0) is creatd by default and any action is done to that document, unless we switch to a new one
+
+#### Add a new doc
+
+To add a new doc, issue
+
+```go
+err = state.AddDoc()
+if err != nil {
+  logger.Fatal(err)
+}
+
+```
+
+**Note: Adding a new doc also switches the pointer to that doc. Any action will write/read from the new doc by default**
+
+#### Switch Doc
+
+To switch a different document, we can use **Switch** method that takes as an argument an index
+
+For example to switch to doc 1 (second doc), issue
+
+```go
+err = state.Switch(1)
+if err != nil {
+  logger.Fatal(err)
+}
+```
+
+#### Document names
+
+When we work with more than 1 document, we may want to set names in order to easily switch between docs
+
+We have 2 ways to name our documents
+
+- Add a name to each document manually
+- Add a name providing a path that exists in all documents
+
+##### Name documents manually
+
+To name a document manually, we can use the **SetName** method which takes 2 arguments
+
+- name
+- doc index
+
+For example to name document with index 0, as myDoc
+
+```go
+err := state.SetName("myDoc", 0)
+if err != nil {
+  logger.Fatal(err)
+}
+```
+
+##### Name all documents automatically
+
+To name all documents automatically we need to ensure that the same path exists in all documents.
+
+The method for updating all documents is called **SetNames** and takes 2 arguments
+
+- Prefix: A path in the documents that will be used for the first name
+- Suffix: A path in the documents that will be used for the last name
+
+**Note: Docs that do not have the paths that are queried will not get a name**
+
+This method best works with **Kubernetes** manifests, where all docs have a common set of fields. 
+
+For example
+
+```yaml
+apiVersion: someApi-0
+kind: someKind-0
+metadata:
+...
+  name: someName-0
+...
+---
+apiVersion: someApi-1
+kind: someKind-1
+metadata:
+...
+  name: someName-1
+...
+---
+```
+
+From above we could give a name for all our documents if we use **kind** + **metadata.name** for the name.
+
+```go
+err := state.SetNames("kind", "metadata.name")
+if err != nil {
+  logger.Fatal(err)
+}
+```
+
+###### List all doc names
+
+To get the name of all named docs, issue
+
+```go
+for i, j := range state.ListDocs() {
+  fmt.Println(i, j)
+}
+```
+Example output based on the previous **SetNames** example
+
+```bash
+0 service/listener-svc
+1 poddisruptionbudget/listener-svc
+2 horizontalpodautoscaler/caller-svc
+3 deployment/caller-svc
+4 service/caller-svc
+5 poddisruptionbudget/caller-svc
+6 horizontalpodautoscaler/listener-svc
+7 deployment/listener-svc
+```
+
+##### Switch between docs by name
+
+To switch to a doc by using the doc's name, issue
+
+```go
+err = state.SwitchDoc("PodDisruptionBudget/caller-svc")
+if err != nil {
+  logger.Fatal(err)
+}
+```
+
+#### Import Docs
+
+We can import a set of docs with **ImportDocs** method. For example if we have the following yaml
+
+```yaml
+apiVersion: someApi-0
+kind: someKind-0
+metadata:
+...
+  name: someName-0
+...
+---
+apiVersion: someApi-1
+kind: someKind-1
+metadata:
+...
+  name: someName-1
+...
+---
+```
+
+We can import it by giving the path of the file
+
+```go
+err = state.ImportDocs("file-name.yaml")
+if err != nil {
+  logger.Fatal(err)
+}
+```
+
+#### Global Upsert
+
+We can use upsert to update or create keys on all documents
+
+```go
+err = state.UpsertGlobal(
+  "some.path",
+  "v0.3.0",
+)
+if err != nil {
+  logger.Fatal(err)
+}
+
+```
+
+#### Global Update
+
+Global update works as **GlobalUpsert** but it skips documents that
+miss a path rather than creating the path on those docs.

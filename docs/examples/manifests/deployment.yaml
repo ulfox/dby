@@ -1,0 +1,213 @@
+---
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: listener-svc
+  namespace: echoserver
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: listener-svc
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 30
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: listener-svc
+  namespace: echoserver
+  # annotations:
+  #   sidecar.istio.io/extraStatTags: destination_port,request_host
+  labels:
+    app: listener-svc
+    version: v0.1.1
+spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: "100%"
+      maxUnavailable: 3
+    type: "RollingUpdate"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: listener-svc
+      version: v0.1.1
+  template:
+    metadata:
+      # annotations:
+      #   sidecar.istio.io/extraStatTags: destination_port,request_host
+      labels:
+        app: listener-svc
+        version: v0.1.1
+    spec:
+      containers:
+      - image: gcr.io/google_containers/echoserver:1.9
+        imagePullPolicy: Always
+        name: listener-svc
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: listener-svc
+  namespace: echoserver
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '15090'
+    prometheus.io/path: '/stats/prometheus'
+  labels:
+    app: listener-svc
+    version: v0.1.1
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: tcp-web
+  selector:
+    app: listener-svc
+    version: v0.1.1
+---
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: listener-svc
+  namespace: echoserver
+  labels:
+    app: listener-svc
+    version: v0.1.1
+spec:
+  maxUnavailable: 3
+  selector:
+    matchLabels:
+      app: listener-svc
+      version: v0.1.1
+---
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: caller-svc
+  namespace: sysdebug
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: caller-svc
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 30
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: caller-svc
+  namespace: sysdebug
+  # annotations:
+  #   sidecar.istio.io/extraStatTags: destination_port,request_host
+  labels:
+    app: caller-svc
+    version: v0.2.0
+spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: "100%"
+      maxUnavailable: 3
+    type: "RollingUpdate"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: caller-svc
+      version: v0.2.0
+  template:
+    metadata:
+      # annotations:
+      #   sidecar.istio.io/extraStatTags: destination_port,request_host
+      labels:
+        app: caller-svc
+        version: v0.2.0
+    spec:
+      # serviceAccount: sysdebug
+      containers:
+        - name: caller-svc
+          ports:
+          - containerPort: 8080
+          image: gcr.io/google_containers/echoserver:1.9
+          imagePullPolicy: IfNotPresent
+          readinessProbe:
+            timeoutSeconds: 7
+            exec:
+              command:
+              - curl
+              - -sS
+              - --fail
+              - --connect-timeout
+              - "5"
+              - -o
+              - /dev/null
+              - listener-svc.echoserver.svc.primef.org
+          livenessProbe:
+            timeoutSeconds: 7
+            exec:
+              command:
+              - curl
+              - -sS
+              - --fail
+              - --connect-timeout
+              - "5"
+              - -o
+              - /dev/null
+              - listener-svc.echoserver.svc.primef.org
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: caller-svc
+  namespace: sysdebug
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '15090'
+    prometheus.io/path: '/stats/prometheus'
+  labels:
+    app: caller-svc
+    version: v0.2.0
+spec:
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+      name: tcp-web
+  type: ClusterIP
+  selector:
+    app: caller-svc
+    version: v0.2.0
+
+---
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: caller-svc
+  namespace: sysdebug
+  labels:
+    app: caller-svc
+    version: v0.2.0
+spec:
+  maxUnavailable: 3
+  selector:
+    matchLabels:
+      app: caller-svc
+      version: v0.2.0

@@ -26,108 +26,108 @@ func NewConvertFactory() *AssertData {
 }
 
 // Clear for resetting AssertData
-func (s *AssertData) Clear() {
-	s.Cache.Clear()
-	s.D0 = make(map[string]string)
-	s.A0 = make([]string, 0)
+func (a *AssertData) Clear() {
+	a.Cache.Clear()
+	a.D0 = make(map[string]string)
+	a.A0 = make([]string, 0)
 }
 
 // Input sets a data source that can be used for assertion
-func (s *AssertData) Input(o interface{}) *AssertData {
-	s.Clear()
-	s.Cache.V1 = o
-	return s
+func (a *AssertData) Input(o interface{}) *AssertData {
+	a.Clear()
+	a.Cache.V1 = o
+	return a
 }
 
-func (s *AssertData) toBytes() {
-	s.Cache.B, s.Cache.E = yaml.Marshal(s.Cache.V1)
-	if s.Cache.E != nil {
-		s.Error = s.Cache.E
+func (a *AssertData) toBytes() {
+	a.Cache.B, a.Cache.E = yaml.Marshal(a.Cache.V1)
+	if a.Cache.E != nil {
+		a.Error = a.Cache.E
 	}
 }
 
 // GetMap for converting a map[interface{}]interface{} into a map[string]string
-func (s *AssertData) GetMap() map[string]string {
-	if s.Cache.E != nil {
-		s.Error = s.Cache.E
+func (a *AssertData) GetMap() map[string]string {
+	if a.Cache.E != nil {
+		a.Error = a.Cache.E
 		return nil
 	}
 
-	s.toBytes()
-	if s.Cache.E != nil {
+	a.toBytes()
+	if a.Cache.E != nil {
 		return nil
 	}
 
-	s.Cache.E = yaml.Unmarshal(s.Cache.B, &s.D0)
-	if s.Cache.E != nil {
-		s.Error = s.Cache.E
+	a.Cache.E = yaml.Unmarshal(a.Cache.B, &a.D0)
+	if a.Cache.E != nil {
+		a.Error = a.Cache.E
 		return nil
 	}
-	return s.D0
+	return a.D0
 }
 
 // GetArray for converting a []interface{} to []string
-func (s *AssertData) GetArray() []string {
-	if s.Cache.E != nil {
-		s.Error = s.Cache.E
+func (a *AssertData) GetArray() []string {
+	if a.Cache.E != nil {
+		a.Error = a.Cache.E
 		return nil
 	}
 
-	_, isArray := s.Cache.V1.([]interface{})
+	_, isArray := a.Cache.V1.([]interface{})
 	if !isArray {
-		s.Cache.E = wrapErr(fmt.Errorf(notArrayObj), getFn())
-		s.Error = s.Cache.E
+		a.Cache.E = wrapErr(fmt.Errorf(notArrayObj), getFn())
+		a.Error = a.Cache.E
 		return nil
 	}
 
-	s.toBytes()
-	if s.Cache.E != nil {
+	a.toBytes()
+	if a.Cache.E != nil {
 		return nil
 	}
 
-	s.Cache.E = yaml.Unmarshal(s.Cache.B, &s.A0)
-	if s.Cache.E != nil {
-		s.Error = s.Cache.E
+	a.Cache.E = yaml.Unmarshal(a.Cache.B, &a.A0)
+	if a.Cache.E != nil {
+		a.Error = a.Cache.E
 		return nil
 	}
 
-	return s.A0
+	return a.A0
 }
 
 // Key copies initial interface object and returns a map of interfaces{}
 // Used to easily pipe interfaces
-func (s *AssertData) Key(k string) *AssertData {
-	if s.Cache.E != nil {
-		s.Error = s.Cache.E
-		return s
+func (a *AssertData) Key(k string) *AssertData {
+	if a.Cache.E != nil {
+		a.Error = a.Cache.E
+		return a
 	}
 
-	_, isMap := s.Cache.V1.(map[interface{}]interface{})
+	_, isMap := a.Cache.V1.(map[interface{}]interface{})
 	if !isMap {
-		s.Cache.E = wrapErr(fmt.Errorf(notAMap), getFn())
-		s.Error = s.Cache.E
-		return s
+		a.Cache.E = wrapErr(fmt.Errorf(notAMap), getFn())
+		a.Error = a.Cache.E
+		return a
 	}
 
-	s.Cache.V1 = s.Cache.V1.(map[interface{}]interface{})[k]
+	a.Cache.V1 = a.Cache.V1.(map[interface{}]interface{})[k]
 
-	return s
+	return a
 }
 
 // Index getting an interface{} from a []interface{}
-func (s *AssertData) Index(i int) *AssertData {
-	if s.Cache.E != nil {
-		s.Error = s.Cache.E
-		return s
+func (a *AssertData) Index(i int) *AssertData {
+	if a.Cache.E != nil {
+		a.Error = a.Cache.E
+		return a
 	}
 
-	_, isArray := s.Cache.V1.([]interface{})
+	_, isArray := a.Cache.V1.([]interface{})
 	if !isArray {
-		s.Cache.E = wrapErr(fmt.Errorf(notArrayObj), getFn())
-		s.Error = s.Cache.E
-		return s
+		a.Cache.E = wrapErr(fmt.Errorf(notArrayObj), getFn())
+		a.Error = a.Cache.E
+		return a
 	}
-	s.Cache.V1 = s.Cache.V1.([]interface{})[i]
+	a.Cache.V1 = a.Cache.V1.([]interface{})[i]
 
-	return s
+	return a
 }
