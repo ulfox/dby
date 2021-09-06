@@ -1,15 +1,56 @@
 package db
 
 import (
+	"fmt"
 	"strings"
 )
 
 // Upsert is a SQL wrapper for adding/updating map structures
 func (s *Storage) Upsert(k string, i interface{}) error {
-	err := s.SQL.upsertRecursive(strings.Split(k, "."), s.Data, i)
+	err := s.SQL.upsertRecursive(strings.Split(k, "."), s.Data[s.AD], i)
 	if err != nil {
 		return wrapErr(err, getFn())
 	}
+
+	return s.stateReload()
+}
+
+// UpsertGlobal is a SQL wrapper for adding/updating map structures
+// in all documents. This will change all existing paths to the given
+// structure and add new if the path is missing for a document
+func (s *Storage) UpsertGlobal(k string, i interface{}) error {
+	c := s.AD
+	for j := range s.Data {
+		err := s.SQL.upsertRecursive(strings.Split(k, "."), s.Data[j], i)
+		if err != nil {
+			return wrapErr(err, getFn())
+		}
+	}
+
+	s.AD = c
+
+	return s.stateReload()
+}
+
+// UpdateGlobal is a SQL wrapper for adding/updating map structures
+// in all documents. This will change all existing paths to the given
+// structure and add new if the path is missing for a document
+func (s *Storage) UpdateGlobal(k string, i interface{}) error {
+	c := s.AD
+	for j := range s.Data {
+		s.AD = j
+
+		if _, err := s.GetPath(k); err != nil {
+			continue
+		}
+
+		err := s.SQL.upsertRecursive(strings.Split(k, "."), s.Data[s.AD], i)
+		if err != nil {
+			return wrapErr(err, getFn())
+		}
+	}
+
+	s.AD = c
 
 	return s.stateReload()
 }
@@ -18,7 +59,7 @@ func (s *Storage) Upsert(k string, i interface{}) error {
 // yaml hierarchy. If two keys are on the same level but under
 // different paths, then the selection will be random
 func (s *Storage) GetFirst(k string) (interface{}, error) {
-	obj, err := s.SQL.getFirst(k, s.Data)
+	obj, err := s.SQL.getFirst(k, s.Data[s.AD])
 	if err != nil {
 		return nil, wrapErr(err, getFn())
 	}
@@ -38,7 +79,21 @@ func (s *Storage) GetFirst(k string) (interface{}, error) {
 //			test: someValue-2
 //
 func (s *Storage) Get(k string) ([]string, error) {
-	obj, err := s.SQL.get(k, s.Data)
+	fmt.Println("Warn: Deprecated is Get(). Will be replaced by FindKeys() in the future.")
+	obj, err := s.SQL.get(k, s.Data[s.AD])
+	if err != nil {
+		return nil, wrapErr(err, getFn())
+	}
+
+	return obj, nil
+}
+
+// FindKeys is alias of Get. This function will replace
+// Get in the future since this name for finding keys
+// makes more sense
+// For now we keep both for compatibility
+func (s *Storage) FindKeys(k string) ([]string, error) {
+	obj, err := s.SQL.get(k, s.Data[s.AD])
 	if err != nil {
 		return nil, wrapErr(err, getFn())
 	}
@@ -55,7 +110,7 @@ func (s *Storage) Get(k string) ([]string, error) {
 //
 func (s *Storage) GetPath(k string) (interface{}, error) {
 	keys := strings.Split(k, ".")
-	obj, err := s.SQL.getPath(keys, s.Data)
+	obj, err := s.SQL.getPath(keys, s.Data[s.AD])
 	if err != nil {
 		return nil, wrapErr(err, getFn())
 	}
@@ -68,7 +123,7 @@ func (s *Storage) GetPath(k string) (interface{}, error) {
 // validate that the path exists, then it would export the value of
 // GetPath("key-1.key-2") and delete the object that matches key-3
 func (s *Storage) Delete(k string) error {
-	err := s.SQL.delPath(k, s.Data)
+	err := s.SQL.delPath(k, s.Data[s.AD])
 	if err != nil {
 		return wrapErr(err, getFn())
 	}
@@ -79,7 +134,7 @@ func (s *Storage) Delete(k string) error {
 // MergeDBs is a SQL wrapper that merges a source yaml file
 // with the DBy local yaml file.
 func (s *Storage) MergeDBs(path string) error {
-	err := s.SQL.mergeDBs(path, s.Data)
+	err := s.SQL.mergeDBs(path, s.Data[s.AD])
 	if err != nil {
 		return wrapErr(err, getFn())
 	}

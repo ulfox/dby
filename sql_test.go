@@ -75,7 +75,7 @@ func TestUpsert(t *testing.T) {
 	f, err := ioutil.ReadFile(path)
 	assert.Equal(t, err, nil)
 
-	yaml.Unmarshal(f, &state.Data)
+	yaml.Unmarshal(f, &state.Data[state.AD])
 
 	testUpsert := []struct {
 		Key   string
@@ -85,7 +85,7 @@ func TestUpsert(t *testing.T) {
 		{"key-2", "value-2"},
 	}
 
-	data, ok := state.Data.(map[interface{}]interface{})
+	data, ok := state.Data[state.AD].(map[interface{}]interface{})
 	assert.Equal(t, ok, true)
 	for _, testCase := range testUpsert {
 
@@ -366,7 +366,7 @@ func TestGet(t *testing.T) {
 	assert.Equal(t, err, nil)
 
 	assertData := db.NewConvertFactory()
-	assertData.Input(state.Data)
+	assertData.Input(state.Data[state.AD])
 
 	assertData.
 		Key("path-1").
