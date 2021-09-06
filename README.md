@@ -265,10 +265,13 @@ Next, assert **obj** as `map[string]string`
 assertData := db.NewConvertFactory()
 
 assertData.Input(val)
-if assertData.Error != nil {
-	logger.Fatalf(assertData.Error.Error())
+if assertData.GetError() != nil {
+	logger.Fatal(assertData.GetError())
 }
-vMap := assertData.GetMap()
+vMap, err := assertData.GetMap()
+if err != nil {
+	logger.Fatal(err)
+}
 logger.Info(vMap["key-2"])
 
 ```
@@ -285,10 +288,13 @@ assertData.Input(state.Data).
 	Key("to").
 	Key("array-1").
 	Key("key-1").Index(0)
-if assertData.Error != nil {
-	logger.Fatalf(assertData.Error.Error())
+if assertData.GetError() != nil {
+	logger.Fatal(assertData.GetError())
 }
-vMap := assertData.GetMap()
+vMap, err := assertData.GetMap()
+if err != nil {
+	logger.Fatal(err)
+}
 logger.Info(vMap["key-2"])
 
 ```
@@ -318,10 +324,13 @@ Next, assert **obj** as `[]string`
 assertData := db.NewConvertFactory()
 
 assertData.Input(obj)
-if assertData.Error != nil {
-	logger.Fatalf(assertData.Error.Error())
+if assertData.GetError() != nil {
+	logger.Fatal(assertData.GetError())
 }
-vArray := assertData.GetArray()
+vArray, err := assertData.GetArray()
+if err != nil {
+	logger.Fatal(err)
+}
 logger.Info(vArray)
 
 ```
@@ -335,10 +344,13 @@ We can get the array manually by using only **Convert** operations
 assertData.Input(state.Data).
 	Key("to").
 	Key("array-2")
-if assertData.Error != nil {
-	logger.Fatalf(assertData.Error.Error())
+if assertData.GetError() != nil {
+	logger.Fatal(assertData.GetError())
 }
-vArray := assertData.GetArray()
+vArray, err := assertData.GetArray()
+if err != nil {
+	logger.Fatal(err)
+}
 logger.Info(vArray)
 
 ```

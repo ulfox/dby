@@ -9,125 +9,154 @@ import (
 // AssertData is used to for converting interface objects to
 // map of interfaces or array of interfaces
 type AssertData struct {
-	D0    map[string]string
-	A0    []string
-	Error error
-	Cache Cache
+	d0    map[string]string
+	s0    *string
+	s1    []string
+	i0    *int
+	i1    []int
+	cache Cache
 }
 
 // NewConvertFactory for initializing AssertData
 func NewConvertFactory() *AssertData {
-	assertData := &AssertData{
-		D0:    make(map[string]string),
-		A0:    make([]string, 0),
-		Cache: NewCacheFactory(),
+	ad := &AssertData{
+		d0:    make(map[string]string),
+		s1:    make([]string, 0),
+		cache: NewCacheFactory(),
 	}
-	return assertData
+	return ad
 }
 
 // Clear for resetting AssertData
 func (a *AssertData) Clear() {
-	a.Cache.Clear()
-	a.D0 = make(map[string]string)
-	a.A0 = make([]string, 0)
+	a.cache.Clear()
+	a.d0 = make(map[string]string)
+	a.s1 = make([]string, 0)
+	a.i1 = make([]int, 0)
+	a.i0 = nil
+	a.s0 = nil
+}
+
+// GetError returns the any error set to AssertData
+func (a *AssertData) GetError() error {
+	return a.cache.GetError()
+}
+
+func (a *AssertData) setErr(e ...error) *AssertData {
+	if len(e) > 0 {
+		a.cache.E = e[0]
+	}
+	return a
 }
 
 // Input sets a data source that can be used for assertion
 func (a *AssertData) Input(o interface{}) *AssertData {
 	a.Clear()
-	a.Cache.V1 = o
+	a.cache.V1 = o
 	return a
 }
 
-func (a *AssertData) toBytes() {
-	a.Cache.B, a.Cache.E = yaml.Marshal(a.Cache.V1)
-	if a.Cache.E != nil {
-		a.Error = a.Cache.E
+// GetString asserts the input as string
+func (a *AssertData) GetString() (string, error) {
+	if a.GetError() != nil {
+		return "", a.GetError()
 	}
+
+	s, isString := a.cache.V1.(string)
+	if !isString {
+		a.setErr(wrapErr(fmt.Errorf(notAType, "string"), getFn()))
+		return "", a.GetError()
+	}
+
+	return s, nil
+}
+
+// GetInt asserts the input as int
+func (a *AssertData) GetInt() (int, error) {
+	if a.GetError() != nil {
+		return 0, a.GetError()
+	}
+
+	i, isInt := a.cache.V1.(int)
+	if !isInt {
+		a.setErr(wrapErr(fmt.Errorf(notAType, "int"), getFn()))
+		return 0, a.GetError()
+	}
+
+	return i, nil
 }
 
 // GetMap for converting a map[interface{}]interface{} into a map[string]string
-func (a *AssertData) GetMap() map[string]string {
-	if a.Cache.E != nil {
-		a.Error = a.Cache.E
-		return nil
+func (a *AssertData) GetMap() (map[string]string, error) {
+	if a.GetError() != nil {
+		return nil, a.GetError()
 	}
 
-	a.toBytes()
-	if a.Cache.E != nil {
-		return nil
+	a.cache.B, a.cache.E = yaml.Marshal(a.cache.V1)
+	if a.GetError() != nil {
+		return nil, a.GetError()
 	}
 
-	a.Cache.E = yaml.Unmarshal(a.Cache.B, &a.D0)
-	if a.Cache.E != nil {
-		a.Error = a.Cache.E
-		return nil
+	a.cache.E = yaml.Unmarshal(a.cache.B, &a.d0)
+	if a.GetError() != nil {
+		return nil, a.GetError()
 	}
-	return a.D0
+	return a.d0, nil
 }
 
 // GetArray for converting a []interface{} to []string
-func (a *AssertData) GetArray() []string {
-	if a.Cache.E != nil {
-		a.Error = a.Cache.E
-		return nil
+func (a *AssertData) GetArray() ([]string, error) {
+	if a.GetError() != nil {
+		return nil, a.GetError()
 	}
 
-	_, isArray := a.Cache.V1.([]interface{})
+	_, isArray := a.cache.V1.([]interface{})
 	if !isArray {
-		a.Cache.E = wrapErr(fmt.Errorf(notArrayObj), getFn())
-		a.Error = a.Cache.E
-		return nil
+		a.setErr(wrapErr(fmt.Errorf(notArrayObj), getFn()))
+		return nil, a.GetError()
 	}
 
-	a.toBytes()
-	if a.Cache.E != nil {
-		return nil
+	a.cache.B, a.cache.E = yaml.Marshal(a.cache.V1)
+	if a.GetError() != nil {
+		return nil, a.GetError()
 	}
 
-	a.Cache.E = yaml.Unmarshal(a.Cache.B, &a.A0)
-	if a.Cache.E != nil {
-		a.Error = a.Cache.E
-		return nil
+	a.cache.E = yaml.Unmarshal(a.cache.B, &a.s1)
+	if a.GetError() != nil {
+		return nil, a.GetError()
 	}
 
-	return a.A0
+	return a.s1, nil
 }
 
 // Key copies initial interface object and returns a map of interfaces{}
 // Used to easily pipe interfaces
 func (a *AssertData) Key(k string) *AssertData {
-	if a.Cache.E != nil {
-		a.Error = a.Cache.E
+	if a.GetError() != nil {
 		return a
 	}
 
-	_, isMap := a.Cache.V1.(map[interface{}]interface{})
+	_, isMap := a.cache.V1.(map[interface{}]interface{})
 	if !isMap {
-		a.Cache.E = wrapErr(fmt.Errorf(notAMap), getFn())
-		a.Error = a.Cache.E
-		return a
+		return a.setErr(wrapErr(fmt.Errorf(notAMap), getFn()))
 	}
 
-	a.Cache.V1 = a.Cache.V1.(map[interface{}]interface{})[k]
+	a.cache.V1 = a.cache.V1.(map[interface{}]interface{})[k]
 
 	return a
 }
 
 // Index getting an interface{} from a []interface{}
 func (a *AssertData) Index(i int) *AssertData {
-	if a.Cache.E != nil {
-		a.Error = a.Cache.E
+	if a.GetError() != nil {
 		return a
 	}
 
-	_, isArray := a.Cache.V1.([]interface{})
+	_, isArray := a.cache.V1.([]interface{})
 	if !isArray {
-		a.Cache.E = wrapErr(fmt.Errorf(notArrayObj), getFn())
-		a.Error = a.Cache.E
-		return a
+		return a.setErr(wrapErr(fmt.Errorf(notArrayObj), getFn()))
 	}
-	a.Cache.V1 = a.Cache.V1.([]interface{})[i]
+	a.cache.V1 = a.cache.V1.([]interface{})[i]
 
 	return a
 }

@@ -20,6 +20,7 @@ const (
 	libOutOfIndex   = "lib out of index"
 	docNotExists    = "doc [%s] does not exist in lib"
 	fieldNotString  = "[%s] with value [%s] is not a string"
+	notAType        = "value is not a %s"
 )
 
 func wrapErr(e error, s string) error {

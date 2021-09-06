@@ -23,6 +23,11 @@ func NewCacheFactory() Cache {
 	return cache
 }
 
+// GetError returns cache error field
+func (c *Cache) GetError() error {
+	return c.E
+}
+
 // Clear for clearing the cache and setting all
 // content to nil
 func (c *Cache) Clear() *Cache {
