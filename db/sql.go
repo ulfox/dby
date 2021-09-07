@@ -1,12 +1,10 @@
 package db
 
 import (
-	"fmt"
 	"io/ioutil"
 	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 
@@ -100,34 +98,31 @@ func (s *SQL) getArrayObject(k string, o interface{}) (interface{}, bool) {
 
 func (s *SQL) getIndex(k string) (int, error) {
 	if !strings.HasPrefix(k, "[") || !strings.HasSuffix(k, "]") {
-		return 0, wrapErr(fmt.Errorf(notAnIndex, k), getFn())
+		return 0, wrapErr(notAnIndex, k)
 	}
 
 	intVar, err := strconv.Atoi(k[1 : len(k)-1])
 	if err != nil {
-		return 0, wrapErr(err, getFn())
+		return 0, wrapErr(err)
 	}
 	return intVar, nil
 }
 
 func (s *SQL) getFromIndex(k []string, o interface{}) (interface{}, error) {
 	if getObjectType(o) != arrayObj {
-		return nil, wrapErr(errors.New(notArrayObj), getFn())
+		return nil, wrapErr(notArrayObj)
 	}
 
 	i, err := s.getIndex(k[0])
 	if err != nil {
-		return nil, wrapErr(err, getFn())
+		return nil, wrapErr(err)
 	}
 
 	if i > len(o.([]interface{}))-1 {
 		return nil, wrapErr(
-			fmt.Errorf(
-				arrayOutOfRange,
-				strconv.Itoa(i),
-				strconv.Itoa(len(o.([]interface{}))-1),
-			),
-			getFn(),
+			arrayOutOfRange,
+			strconv.Itoa(i),
+			strconv.Itoa(len(o.([]interface{}))-1),
 		)
 	}
 
@@ -140,7 +135,7 @@ func (s *SQL) getFromIndex(k []string, o interface{}) (interface{}, error) {
 
 func (s *SQL) getPath(k []string, o interface{}) (interface{}, error) {
 	if err := checkKeyPath(k); err != nil {
-		return nil, wrapErr(err, getFn())
+		return nil, wrapErr(err)
 	}
 
 	obj, err := interfaceToMap(o)
@@ -149,7 +144,7 @@ func (s *SQL) getPath(k []string, o interface{}) (interface{}, error) {
 	}
 
 	if len(k) == 0 {
-		return nil, wrapErr(fmt.Errorf(keyDoesNotExist, k[0]), getFn())
+		return nil, wrapErr(keyDoesNotExist, k[0])
 	}
 
 	for thisKey, thisObj := range obj {
@@ -163,12 +158,12 @@ func (s *SQL) getPath(k []string, o interface{}) (interface{}, error) {
 
 		objFinal, err := s.getPath(k[1:], thisObj)
 		if err != nil {
-			return nil, wrapErr(err, getFn())
+			return nil, wrapErr(err)
 		}
 		return objFinal, nil
 	}
 
-	return nil, wrapErr(fmt.Errorf(keyDoesNotExist, k[0]), getFn())
+	return nil, wrapErr(keyDoesNotExist, k[0])
 }
 
 func (s *SQL) deleteArrayItem(k string, o interface{}) bool {
@@ -202,16 +197,16 @@ func (s *SQL) deleteItem(k string, o interface{}) bool {
 func (s *SQL) delPath(k string, o interface{}) error {
 	keys := strings.Split(k, ".")
 	if err := checkKeyPath(keys); err != nil {
-		return wrapErr(err, getFn())
+		return wrapErr(err)
 	}
 
 	if len(keys) == 0 {
-		return wrapErr(fmt.Errorf(invalidKeyPath, k), getFn())
+		return wrapErr(invalidKeyPath, k)
 	}
 
 	if len(keys) == 1 {
 		if !s.deleteItem(keys[0], o) {
-			return wrapErr(fmt.Errorf(keyDoesNotExist, k), getFn())
+			return wrapErr(keyDoesNotExist, k)
 		}
 		return nil
 	}
@@ -219,12 +214,12 @@ func (s *SQL) delPath(k string, o interface{}) error {
 	s.Cache.dropKeys()
 	obj, err := s.getPath(keys[:len(keys)-1], o)
 	if err != nil {
-		return wrapErr(err, getFn())
+		return wrapErr(err)
 	}
 
 	s.Cache.dropKeys()
 	if !s.deleteItem(keys[len(keys)-1], obj) {
-		return wrapErr(fmt.Errorf(keyDoesNotExist, k), getFn())
+		return wrapErr(keyDoesNotExist, k)
 	}
 
 	return nil
@@ -237,7 +232,7 @@ func (s *SQL) get(k string, o interface{}) ([]string, error) {
 	s.Clear()
 	s.Cache.V1, err = copyMap(o)
 	if err != nil {
-		return nil, wrapErr(err, getFn())
+		return nil, wrapErr(err)
 	}
 
 	for {
@@ -249,7 +244,7 @@ func (s *SQL) get(k string, o interface{}) ([]string, error) {
 		s.Query.KeysFound = append(s.Query.KeysFound, key)
 
 		if err := s.delPath(key, s.Cache.V1); err != nil {
-			return s.Query.KeysFound, wrapErr(err, getFn())
+			return s.Query.KeysFound, wrapErr(err)
 		}
 		s.Cache.dropKeys()
 	}
@@ -262,22 +257,22 @@ func (s *SQL) getFirst(k string, o interface{}) (interface{}, error) {
 
 	keys, err := s.get(k, o)
 	if err != nil {
-		return nil, wrapErr(err, getFn())
+		return nil, wrapErr(err)
 	}
 
 	if len(keys) == 0 {
-		return nil, wrapErr(fmt.Errorf(keyDoesNotExist, k), getFn())
+		return nil, wrapErr(keyDoesNotExist, k)
 	}
 
 	keySlice := strings.Split(keys[0], ".")
 	if err := checkKeyPath(keySlice); err != nil {
-		return nil, wrapErr(err, getFn())
+		return nil, wrapErr(err)
 	}
 
 	s.Cache.C1 = len(keySlice)
 	if len(keys) == 1 {
 		path, err := s.getPath(keySlice, o)
-		return path, wrapErr(err, getFn())
+		return path, wrapErr(err)
 	}
 
 	for i, key := range keys[1:] {
@@ -288,19 +283,19 @@ func (s *SQL) getFirst(k string, o interface{}) (interface{}, error) {
 	}
 
 	path, err := s.getPath(strings.Split(keys[s.Cache.C2], "."), o)
-	return path, wrapErr(err, getFn())
+	return path, wrapErr(err)
 }
 
 func (s *SQL) upsertRecursive(k []string, o, v interface{}) error {
 	s.Clear()
 
 	if err := checkKeyPath(k); err != nil {
-		return wrapErr(err, getFn())
+		return wrapErr(err)
 	}
 
 	obj, err := interfaceToMap(o)
 	if err != nil {
-		return wrapErr(err, getFn())
+		return wrapErr(err)
 	}
 
 	for thisKey, thisObj := range obj {
@@ -309,7 +304,7 @@ func (s *SQL) upsertRecursive(k []string, o, v interface{}) error {
 		}
 
 		if len(k) > 1 {
-			return wrapErr(s.upsertRecursive(k[1:], thisObj, v), getFn())
+			return wrapErr(s.upsertRecursive(k[1:], thisObj, v))
 		}
 
 		switch getObjectType(thisObj) {
@@ -325,7 +320,7 @@ func (s *SQL) upsertRecursive(k []string, o, v interface{}) error {
 	obj[k[0]] = make(map[interface{}]interface{})
 
 	if len(k) > 1 {
-		return wrapErr(s.upsertRecursive(k[1:], obj[k[0]], v), getFn())
+		return wrapErr(s.upsertRecursive(k[1:], obj[k[0]], v))
 	}
 
 	obj[k[0]] = v
@@ -338,29 +333,29 @@ func (s *SQL) mergeDBs(path string, o interface{}) error {
 
 	ok, err := fileExists(path)
 	if err != nil {
-		return wrapErr(err, getFn())
+		return wrapErr(err)
 	}
 
 	if !ok {
-		return wrapErr(fmt.Errorf(fileNotExist, path), getFn())
+		return wrapErr(fileNotExist, path)
 	}
 
 	f, err := ioutil.ReadFile(path)
 	if err != nil {
-		return wrapErr(err, getFn())
+		return wrapErr(err)
 	}
 
 	yaml.Unmarshal(f, &dataNew)
 
 	obj, err := interfaceToMap(dataNew)
 	if err != nil {
-		return wrapErr(err, getFn())
+		return wrapErr(err)
 	}
 
 	for kn, vn := range obj {
 		err = s.upsertRecursive(strings.Split(kn.(string), "."), o, vn)
 		if err != nil {
-			return wrapErr(err, getFn())
+			return wrapErr(err)
 		}
 	}
 	return nil

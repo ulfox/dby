@@ -9,7 +9,7 @@ import (
 func (s *Storage) Upsert(k string, i interface{}) error {
 	err := s.SQL.upsertRecursive(strings.Split(k, "."), s.Data[s.AD], i)
 	if err != nil {
-		return wrapErr(err, getFn())
+		return wrapErr(err)
 	}
 
 	return s.stateReload()
@@ -23,7 +23,7 @@ func (s *Storage) UpsertGlobal(k string, i interface{}) error {
 	for j := range s.Data {
 		err := s.SQL.upsertRecursive(strings.Split(k, "."), s.Data[j], i)
 		if err != nil {
-			return wrapErr(err, getFn())
+			return wrapErr(err)
 		}
 	}
 
@@ -46,7 +46,7 @@ func (s *Storage) UpdateGlobal(k string, i interface{}) error {
 
 		err := s.SQL.upsertRecursive(strings.Split(k, "."), s.Data[s.AD], i)
 		if err != nil {
-			return wrapErr(err, getFn())
+			return wrapErr(err)
 		}
 	}
 
@@ -61,7 +61,7 @@ func (s *Storage) UpdateGlobal(k string, i interface{}) error {
 func (s *Storage) GetFirst(k string) (interface{}, error) {
 	obj, err := s.SQL.getFirst(k, s.Data[s.AD])
 	if err != nil {
-		return nil, wrapErr(err, getFn())
+		return nil, wrapErr(err)
 	}
 
 	return obj, nil
@@ -104,7 +104,7 @@ func (s *Storage) Get(k string) ([]string, error) {
 	fmt.Println("Warn: Deprecated is Get(). Will be replaced by FindKeys() in the future.")
 	obj, err := s.SQL.get(k, s.Data[s.AD])
 	if err != nil {
-		return nil, wrapErr(err, getFn())
+		return nil, wrapErr(err)
 	}
 
 	return obj, nil
@@ -117,7 +117,7 @@ func (s *Storage) Get(k string) ([]string, error) {
 func (s *Storage) FindKeys(k string) ([]string, error) {
 	obj, err := s.SQL.get(k, s.Data[s.AD])
 	if err != nil {
-		return nil, wrapErr(err, getFn())
+		return nil, wrapErr(err)
 	}
 
 	return obj, nil
@@ -156,7 +156,7 @@ func (s *Storage) GetPath(k string) (interface{}, error) {
 	keys := strings.Split(k, ".")
 	obj, err := s.SQL.getPath(keys, s.Data[s.AD])
 	if err != nil {
-		return nil, wrapErr(err, getFn())
+		return nil, wrapErr(err)
 	}
 
 	return obj, nil
@@ -191,7 +191,7 @@ func (s *Storage) GetPathGlobal(k string) map[int]interface{} {
 func (s *Storage) Delete(k string) error {
 	err := s.SQL.delPath(k, s.Data[s.AD])
 	if err != nil {
-		return wrapErr(err, getFn())
+		return wrapErr(err)
 	}
 
 	return s.Write()
@@ -202,7 +202,7 @@ func (s *Storage) Delete(k string) error {
 func (s *Storage) DeleteGlobal(k string) error {
 	err := s.SQL.delPath(k, s.Data[s.AD])
 	if err != nil {
-		return wrapErr(err, getFn())
+		return wrapErr(err)
 	}
 
 	return s.Write()
@@ -213,7 +213,7 @@ func (s *Storage) DeleteGlobal(k string) error {
 func (s *Storage) MergeDBs(path string) error {
 	err := s.SQL.mergeDBs(path, s.Data[s.AD])
 	if err != nil {
-		return wrapErr(err, getFn())
+		return wrapErr(err)
 	}
 
 	return s.Write()

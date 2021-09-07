@@ -10,8 +10,13 @@ import (
 	"strings"
 	"sync"
 
+	e "github.com/ulfox/dby/errors"
 	"gopkg.in/yaml.v2"
 )
+
+type erf = func(e interface{}, p ...interface{}) error
+
+var wrapErr erf = e.WrapErr
 
 // Storage is the main object exported by DBy. It consolidates together
 // the Yaml Data and SQL
@@ -36,12 +41,12 @@ func NewStorageFactory(path string) (*Storage, error) {
 	stateDir := filepath.Dir(path)
 	err := makeDirs(stateDir, 0700)
 	if err != nil {
-		return nil, wrapErr(err, getFn())
+		return nil, wrapErr(err)
 	}
 
 	stateExists, err := fileExists(path)
 	if err != nil {
-		return nil, wrapErr(err, getFn())
+		return nil, wrapErr(err)
 	}
 
 	if !stateExists {
@@ -55,7 +60,7 @@ func NewStorageFactory(path string) (*Storage, error) {
 	// written the right way.
 	err = state.Read()
 	if err != nil {
-		return nil, wrapErr(err, getFn())
+		return nil, wrapErr(err)
 	}
 
 	return state, nil
@@ -82,12 +87,12 @@ func (s *Storage) SetNames(f, l string) error {
 
 		sKind, ok := kind.(string)
 		if !ok {
-			wrapErr(fmt.Errorf(fieldNotString, strings.ToLower(f), kind), getFn())
+			wrapErr(fieldNotString, strings.ToLower(f), kind)
 		}
 
 		sName, ok := name.(string)
 		if !ok {
-			wrapErr(fmt.Errorf(fieldNotString, strings.ToLower(l), name), getFn())
+			wrapErr(fieldNotString, strings.ToLower(l), name)
 		}
 
 		docName := fmt.Sprintf("%s/%s", strings.ToLower(sKind), strings.ToLower(sName))
@@ -101,7 +106,7 @@ func (s *Storage) SetNames(f, l string) error {
 func (s *Storage) SetName(n string, i int) error {
 	err := s.Switch(i)
 	if err != nil {
-		return wrapErr(err, getFn())
+		return wrapErr(err)
 	}
 	s.Lib[strings.ToLower(n)] = i
 
@@ -111,7 +116,7 @@ func (s *Storage) SetName(n string, i int) error {
 // DeleteDoc will the document with the given index
 func (s *Storage) DeleteDoc(i int) error {
 	if i > len(s.Data)-1 && i != 0 {
-		return wrapErr(fmt.Errorf(libOutOfIndex), getFn())
+		return wrapErr(libOutOfIndex)
 	}
 
 	s.Data = append(s.Data[:i], s.Data[i+1:]...)
@@ -126,7 +131,7 @@ func (s *Storage) DeleteDoc(i int) error {
 // Switch will change Active Document (AD) to the given index
 func (s *Storage) Switch(i int) error {
 	if i > len(s.Data)-1 && i != 0 {
-		return wrapErr(fmt.Errorf(libOutOfIndex), getFn())
+		return wrapErr(libOutOfIndex)
 	}
 	s.AD = i
 	return nil
@@ -157,7 +162,7 @@ func (s *Storage) ListDocs() []string {
 func (s *Storage) SwitchDoc(n string) error {
 	i, exists := s.Lib[strings.ToLower(n)]
 	if !exists {
-		return wrapErr(fmt.Errorf(docNotExists, strings.ToLower(n)), getFn())
+		return wrapErr(docNotExists, strings.ToLower(n))
 	}
 	s.AD = i
 	return nil
@@ -175,7 +180,7 @@ func (s *Storage) DeleteAll(delete bool) *Storage {
 func (s *Storage) ImportDocs(path string, o ...bool) error {
 	impf, err := ioutil.ReadFile(path)
 	if err != nil {
-		return wrapErr(err, getFn())
+		return wrapErr(err)
 	}
 
 	var dataArray []interface{}
@@ -203,7 +208,7 @@ func (s *Storage) ImportDocs(path string, o ...bool) error {
 		if err.Error() == "EOF" {
 			break
 		}
-		return wrapErr(err, getFn())
+		return wrapErr(err)
 	}
 
 	for _, j := range dataArray {
@@ -223,7 +228,7 @@ func (s *Storage) ImportDocs(path string, o ...bool) error {
 func (s *Storage) Read() error {
 	f, err := ioutil.ReadFile(s.Path)
 	if err != nil {
-		return wrapErr(err, getFn())
+		return wrapErr(err)
 	}
 
 	s.Lock()
@@ -245,7 +250,7 @@ func (s *Storage) Read() error {
 		if err.Error() == "EOF" {
 			break
 		}
-		return wrapErr(err, getFn())
+		return wrapErr(err)
 	}
 
 	return nil
@@ -259,7 +264,7 @@ func (s *Storage) Write() error {
 	wrkDir := path.Dir(s.Path)
 	f, err := ioutil.TempFile(wrkDir, ".tx.*")
 	if err != nil {
-		return wrapErr(err, getFn())
+		return wrapErr(err)
 	}
 
 	var buf bytes.Buffer
@@ -272,20 +277,20 @@ func (s *Storage) Write() error {
 
 		err := enc.Encode(j)
 		if err != nil {
-			return wrapErr(err, getFn())
+			return wrapErr(err)
 		}
 	}
 
 	_, err = f.Write(buf.Bytes())
 	if err != nil {
-		return wrapErr(err, getFn())
+		return wrapErr(err)
 	}
 	err = f.Close()
 	if err != nil {
-		return wrapErr(err, getFn())
+		return wrapErr(err)
 	}
 
-	return wrapErr(os.Rename(f.Name(), s.Path), getFn())
+	return wrapErr(os.Rename(f.Name(), s.Path))
 }
 
 // func (s *Storage) cacheR() error {
@@ -296,8 +301,8 @@ func (s *Storage) Write() error {
 func (s *Storage) stateReload() error {
 	err := s.Write()
 	if err != nil {
-		return wrapErr(err, getFn())
+		return wrapErr(err)
 	}
 
-	return wrapErr(s.Read(), getFn())
+	return wrapErr(s.Read())
 }

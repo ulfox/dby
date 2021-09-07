@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 
@@ -21,19 +20,19 @@ func checkKeyPath(k []string) error {
 func copyMap(o interface{}) (interface{}, error) {
 	obj, err := interfaceToMap(o)
 	if err != nil {
-		return nil, wrapErr(err, getFn())
+		return nil, wrapErr(err)
 	}
 
 	var cache interface{}
 
 	data, err := yaml.Marshal(&obj)
 	if err != nil {
-		return nil, wrapErr(err, getFn())
+		return nil, wrapErr(err)
 	}
 
 	err = yaml.Unmarshal(data, &cache)
 	if err != nil {
-		return nil, wrapErr(err, getFn())
+		return nil, wrapErr(err)
 	}
 
 	return cache, nil
@@ -43,7 +42,7 @@ func interfaceToMap(o interface{}) (map[interface{}]interface{}, error) {
 	obj, isMap := o.(map[interface{}]interface{})
 	if !isMap {
 		if o != nil {
-			return nil, wrapErr(errors.New(notAMap), getFn())
+			return nil, wrapErr(notAMap)
 		}
 		obj = make(map[interface{}]interface{})
 	}
@@ -67,7 +66,7 @@ func makeDirs(p string, m os.FileMode) error {
 	if _, err := os.Stat(p); os.IsNotExist(err) {
 		err = os.MkdirAll(p, m)
 		if err != nil {
-			return wrapErr(err, getFn())
+			return wrapErr(err)
 		}
 	}
 	return nil
@@ -79,7 +78,7 @@ func fileExists(filepath string) (bool, error) {
 	if os.IsNotExist(err) {
 		return false, nil
 	} else if f.IsDir() {
-		return false, wrapErr(fmt.Errorf(dictNotFile, filepath), getFn())
+		return false, wrapErr(dictNotFile, filepath)
 	}
 
 	return true, nil
