@@ -172,7 +172,7 @@ func (s *SQL) deleteArrayItem(k string, o interface{}) bool {
 	}
 	for ki, kn := range o.([]interface{}) {
 		if kn.(map[interface{}]interface{})[k] != nil {
-			o.([]interface{})[ki] = make(map[interface{}]interface{})
+			o.([]interface{})[ki] = emptyMap()
 			return true
 		}
 	}
@@ -317,7 +317,7 @@ func (s *SQL) upsertRecursive(k []string, o, v interface{}) error {
 		break
 	}
 
-	obj[k[0]] = make(map[interface{}]interface{})
+	obj[k[0]] = emptyMap()
 
 	if len(k) > 1 {
 		return wrapErr(s.upsertRecursive(k[1:], obj[k[0]], v))

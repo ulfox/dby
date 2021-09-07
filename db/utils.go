@@ -38,13 +38,17 @@ func copyMap(o interface{}) (interface{}, error) {
 	return cache, nil
 }
 
+func emptyMap() map[interface{}]interface{} {
+	return make(map[interface{}]interface{})
+}
+
 func interfaceToMap(o interface{}) (map[interface{}]interface{}, error) {
 	obj, isMap := o.(map[interface{}]interface{})
 	if !isMap {
 		if o != nil {
 			return nil, wrapErr(notAMap)
 		}
-		obj = make(map[interface{}]interface{})
+		obj = emptyMap()
 	}
 	return obj, nil
 }

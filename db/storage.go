@@ -145,7 +145,7 @@ func (s *Storage) AddDoc() error {
 	} else {
 		s.AD = len(s.Data)
 	}
-	s.Data = append(s.Data, make(map[interface{}]interface{}))
+	s.Data = append(s.Data, emptyMap())
 	return s.stateReload()
 }
 
