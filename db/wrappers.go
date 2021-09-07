@@ -65,13 +65,12 @@ func (s *Storage) GetFirst(k string) (interface{}, error) {
 	}
 
 	return obj, nil
-
 }
 
 // GetFirstGlobal does the same as GetFirst but for all docs.
 // Instead of returning an interface it returns a map with keys
 // the index of the doc that a key was found and value the value of the key
-func (s *Storage) GetFirstGlobal(k string) (map[int]interface{}, error) {
+func (s *Storage) GetFirstGlobal(k string) map[int]interface{} {
 	found := make(map[int]interface{})
 
 	c := s.AD
@@ -87,7 +86,7 @@ func (s *Storage) GetFirstGlobal(k string) (map[int]interface{}, error) {
 
 	s.AD = c
 
-	return found, nil
+	return found
 }
 
 // Get is a SQL wrapper that finds all the paths for a given
@@ -127,7 +126,7 @@ func (s *Storage) FindKeys(k string) ([]string, error) {
 // FindKeysGlobal does the same as FindKeys but for all docs.
 // Instead of returning a list of keys it returns a map with indexes
 // from the docs and value an array of paths that was found
-func (s *Storage) FindKeysGlobal(k string) (map[int][]string, error) {
+func (s *Storage) FindKeysGlobal(k string) map[int][]string {
 	found := make(map[int][]string)
 
 	c := s.AD
@@ -143,7 +142,7 @@ func (s *Storage) FindKeysGlobal(k string) (map[int][]string, error) {
 
 	s.AD = c
 
-	return found, nil
+	return found
 }
 
 // GetPath is a SQL wrapper that returns the value for a given
@@ -163,11 +162,44 @@ func (s *Storage) GetPath(k string) (interface{}, error) {
 	return obj, nil
 }
 
+// GetPathGlobal does the same as GetPath but globally for all
+// docs
+func (s *Storage) GetPathGlobal(k string) map[int]interface{} {
+	found := make(map[int]interface{})
+	keys := strings.Split(k, ".")
+
+	c := s.AD
+	for j := range s.Data {
+		s.AD = j
+
+		obj, err := s.SQL.getPath(keys, s.Data[s.AD])
+		if err != nil {
+			continue
+		}
+		found[s.AD] = obj
+	}
+
+	s.AD = c
+
+	return found
+}
+
 // Delete is a SQL wrapper that deletes the last key from a given
 // path. For example, Delete("key-1.key-2.key-3") would first
 // validate that the path exists, then it would export the value of
 // GetPath("key-1.key-2") and delete the object that matches key-3
 func (s *Storage) Delete(k string) error {
+	err := s.SQL.delPath(k, s.Data[s.AD])
+	if err != nil {
+		return wrapErr(err, getFn())
+	}
+
+	return s.Write()
+}
+
+// DeleteGlobal is the same as Delete but will try to delete
+// the path on all docs (if found)
+func (s *Storage) DeleteGlobal(k string) error {
 	err := s.SQL.delPath(k, s.Data[s.AD])
 	if err != nil {
 		return wrapErr(err, getFn())

@@ -110,7 +110,7 @@ func (s *Storage) SetName(n string, i int) error {
 
 // DeleteDoc will the document with the given index
 func (s *Storage) DeleteDoc(i int) error {
-	if i > len(s.Data)-1 {
+	if i > len(s.Data)-1 && i != 0 {
 		return wrapErr(fmt.Errorf(libOutOfIndex), getFn())
 	}
 
@@ -125,7 +125,7 @@ func (s *Storage) DeleteDoc(i int) error {
 
 // Switch will change Active Document (AD) to the given index
 func (s *Storage) Switch(i int) error {
-	if i > len(s.Data)-1 {
+	if i > len(s.Data)-1 && i != 0 {
 		return wrapErr(fmt.Errorf(libOutOfIndex), getFn())
 	}
 	s.AD = i
@@ -135,7 +135,11 @@ func (s *Storage) Switch(i int) error {
 // AddDoc will add a new document to the stack and will switch
 // Active Document index to that document
 func (s *Storage) AddDoc() error {
-	s.AD = len(s.Data)
+	if len(s.Data) == 0 {
+		s.AD = 0
+	} else {
+		s.AD = len(s.Data)
+	}
 	s.Data = append(s.Data, make(map[interface{}]interface{}))
 	return s.stateReload()
 }
@@ -159,6 +163,14 @@ func (s *Storage) SwitchDoc(n string) error {
 	return nil
 }
 
+// DeleteAll for removing all docs
+func (s *Storage) DeleteAll(delete bool) *Storage {
+	if delete {
+		s.Data = nil
+	}
+	return s
+}
+
 // ImportDocs for importing documents
 func (s *Storage) ImportDocs(path string, o ...bool) error {
 	impf, err := ioutil.ReadFile(path)
@@ -171,6 +183,7 @@ func (s *Storage) ImportDocs(path string, o ...bool) error {
 	var data interface{}
 
 	if len(o) > 0 {
+		fmt.Println("Warn: Deprecated ImportDocs(string, bool). In the future bool will be removed, use db.DeleteAll(true).ImportDocs(path) instead")
 		if o[0] {
 			s.Data = nil
 		}
@@ -274,6 +287,11 @@ func (s *Storage) Write() error {
 
 	return wrapErr(os.Rename(f.Name(), s.Path), getFn())
 }
+
+// func (s *Storage) cacheR() error {
+
+// 	return nil
+// }
 
 func (s *Storage) stateReload() error {
 	err := s.Write()

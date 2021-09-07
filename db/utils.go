@@ -3,8 +3,6 @@ package db
 import (
 	"fmt"
 	"os"
-	"runtime"
-	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -18,15 +16,6 @@ func checkKeyPath(k []string) error {
 		}
 	}
 	return nil
-}
-
-func getFn() string {
-	pc, _, no, ok := runtime.Caller(1)
-	details := runtime.FuncForPC(pc)
-	if ok && details != nil {
-		return fmt.Sprintf("%s#%s\n", details.Name(), strconv.Itoa(no))
-	}
-	return ""
 }
 
 func copyMap(o interface{}) (interface{}, error) {

@@ -1,12 +1,15 @@
 package db
 
 import (
+	"fmt"
+	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
 )
 
-// Inormational Error constants. Used during a return ... errors.New()
+// Inormational Error constants. Used during a return err
 const (
 	notAMap         = "target object is not a map"
 	notArrayObj     = "received a non array object but expected []interface{}"
@@ -29,4 +32,13 @@ func wrapErr(e error, s string) error {
 	}
 
 	return errors.Wrap(e, strings.Split(s, "/")[len(strings.Split(s, "/"))-1])
+}
+
+func getFn() string {
+	pc, _, no, ok := runtime.Caller(1)
+	details := runtime.FuncForPC(pc)
+	if ok && details != nil {
+		return fmt.Sprintf("%s#%s\n", details.Name(), strconv.Itoa(no))
+	}
+	return ""
 }

@@ -1,6 +1,6 @@
 .PHONY: clean
 clean:
-	rm -rf .test
+	rm -rf tests/.test;
 
 .PHONY: clean
 lint:
@@ -11,5 +11,6 @@ lint:
 
 
 .PHONY: test
-test:
-	go test -v .
+test: clean
+	go test -v ./tests/
+	rmdir ./tests/.test
