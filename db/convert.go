@@ -1,8 +1,6 @@
 package db
 
 import (
-	"fmt"
-
 	"gopkg.in/yaml.v2"
 )
 
@@ -64,7 +62,7 @@ func (a *AssertData) GetString() (string, error) {
 
 	s, isString := a.cache.V1.(string)
 	if !isString {
-		a.setErr(wrapErr(fmt.Errorf(notAType, "string"), getFn()))
+		a.setErr(wrapErr(notAType, "string"))
 		return "", a.GetError()
 	}
 
@@ -79,7 +77,7 @@ func (a *AssertData) GetInt() (int, error) {
 
 	i, isInt := a.cache.V1.(int)
 	if !isInt {
-		a.setErr(wrapErr(fmt.Errorf(notAType, "int"), getFn()))
+		a.setErr(wrapErr(notAType, "int"))
 		return 0, a.GetError()
 	}
 
@@ -112,7 +110,7 @@ func (a *AssertData) GetArray() ([]string, error) {
 
 	_, isArray := a.cache.V1.([]interface{})
 	if !isArray {
-		a.setErr(wrapErr(fmt.Errorf(notArrayObj), getFn()))
+		a.setErr(wrapErr(notArrayObj))
 		return nil, a.GetError()
 	}
 
@@ -138,7 +136,7 @@ func (a *AssertData) Key(k string) *AssertData {
 
 	_, isMap := a.cache.V1.(map[interface{}]interface{})
 	if !isMap {
-		return a.setErr(wrapErr(fmt.Errorf(notAMap), getFn()))
+		return a.setErr(wrapErr(notAMap))
 	}
 
 	a.cache.V1 = a.cache.V1.(map[interface{}]interface{})[k]
@@ -154,7 +152,7 @@ func (a *AssertData) Index(i int) *AssertData {
 
 	_, isArray := a.cache.V1.([]interface{})
 	if !isArray {
-		return a.setErr(wrapErr(fmt.Errorf(notArrayObj), getFn()))
+		return a.setErr(wrapErr(notArrayObj))
 	}
 	a.cache.V1 = a.cache.V1.([]interface{})[i]
 
