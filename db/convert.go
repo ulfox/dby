@@ -1,6 +1,7 @@
 package db
 
 import (
+	v1 "github.com/ulfox/dby/cache/v1"
 	"gopkg.in/yaml.v2"
 )
 
@@ -12,7 +13,7 @@ type AssertData struct {
 	s1    []string
 	i0    *int
 	i1    []int
-	cache Cache
+	cache v1.Cache
 }
 
 // NewConvertFactory for initializing AssertData
@@ -20,7 +21,7 @@ func NewConvertFactory() *AssertData {
 	ad := &AssertData{
 		d0:    make(map[string]string),
 		s1:    make([]string, 0),
-		cache: NewCacheFactory(),
+		cache: v1.NewCacheFactory(),
 	}
 	return ad
 }

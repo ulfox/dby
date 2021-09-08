@@ -27,43 +27,71 @@ type Storage struct {
 	Lib  map[string]int
 	AD   int
 	Path string
+	mem  bool
 }
 
 // NewStorageFactory for creating a new Storage
-func NewStorageFactory(path string) (*Storage, error) {
+func NewStorageFactory(p ...interface{}) (*Storage, error) {
+	var path string = "local/dby.yaml"
+	var inMem bool = true
+
+	if len(p) > 0 {
+		switch i := p[0].(type) {
+		case string:
+			path = i
+			inMem = false
+		case bool:
+			inMem = i
+		}
+	}
+
 	state := &Storage{
 		SQL:  NewSQLFactory(),
 		Path: path,
 		Data: make([]interface{}, 0),
 		Lib:  make(map[string]int),
+		mem:  inMem,
 	}
 
-	stateDir := filepath.Dir(path)
-	err := makeDirs(stateDir, 0700)
-	if err != nil {
-		return nil, wrapErr(err)
-	}
-
-	stateExists, err := fileExists(path)
-	if err != nil {
-		return nil, wrapErr(err)
-	}
-
-	if !stateExists {
-		state.Data = append(state.Data, map[string]string{})
-		state.AD = 0
-		state.Write()
-	}
-
-	// Here we read the state. If we just created the file
-	// then this is done to ensure everything was encoded and
-	// written the right way.
-	err = state.Read()
+	err := state.dbinit()
 	if err != nil {
 		return nil, wrapErr(err)
 	}
 
 	return state, nil
+}
+
+func (s *Storage) dbinit() error {
+	emptyDoc := append(s.Data, map[string]string{})
+
+	if s.mem {
+		s.Data = emptyDoc
+		s.AD = 0
+		return nil
+	}
+
+	stateDir := filepath.Dir(s.Path)
+	err := makeDirs(stateDir, 0700)
+	if err != nil {
+		return wrapErr(err)
+	}
+
+	stateExists, err := fileExists(s.Path)
+	if err != nil {
+		return wrapErr(err)
+	}
+
+	if !stateExists {
+		s.Data = emptyDoc
+		s.AD = 0
+	}
+
+	err = s.stateReload()
+	if err != nil {
+		return wrapErr(err)
+	}
+
+	return nil
 }
 
 // SetNames can set names automatically to the documents
@@ -188,7 +216,7 @@ func (s *Storage) ImportDocs(path string, o ...bool) error {
 	var data interface{}
 
 	if len(o) > 0 {
-		fmt.Println("Warn: Deprecated ImportDocs(string, bool). In the future bool will be removed, use db.DeleteAll(true).ImportDocs(path) instead")
+		issueWarning(deprecatedFeature, "ImportDocs(string, bool)", "Storage.DeleteAll(true).ImportDocs(path)")
 		if o[0] {
 			s.Data = nil
 		}
@@ -221,6 +249,12 @@ func (s *Storage) ImportDocs(path string, o ...bool) error {
 		s.Data = append(s.Data, j)
 	}
 	return s.stateReload()
+}
+
+// InMem for configuring db to write only in memory
+func (s *Storage) InMem(m bool) *Storage {
+	s.mem = m
+	return s
 }
 
 // Read for reading the local yaml file and importing it
@@ -293,12 +327,11 @@ func (s *Storage) Write() error {
 	return wrapErr(os.Rename(f.Name(), s.Path))
 }
 
-// func (s *Storage) cacheR() error {
-
-// 	return nil
-// }
-
 func (s *Storage) stateReload() error {
+	if s.mem {
+		return nil
+	}
+
 	err := s.Write()
 	if err != nil {
 		return wrapErr(err)

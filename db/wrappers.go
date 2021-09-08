@@ -1,13 +1,16 @@
 package db
 
 import (
-	"fmt"
 	"strings"
 )
 
 // Upsert is a SQL wrapper for adding/updating map structures
 func (s *Storage) Upsert(k string, i interface{}) error {
-	err := s.SQL.upsertRecursive(strings.Split(k, "."), s.Data[s.AD], i)
+	data, err := s.SQL.toInterfaceMap(i)
+	if err != nil {
+		return wrapErr(err)
+	}
+	err = s.SQL.upsertRecursive(strings.Split(k, "."), s.Data[s.AD], data)
 	if err != nil {
 		return wrapErr(err)
 	}
@@ -19,9 +22,14 @@ func (s *Storage) Upsert(k string, i interface{}) error {
 // in all documents. This will change all existing paths to the given
 // structure and add new if the path is missing for a document
 func (s *Storage) UpsertGlobal(k string, i interface{}) error {
+	data, err := s.SQL.toInterfaceMap(i)
+	if err != nil {
+		return wrapErr(err)
+	}
+
 	c := s.AD
 	for j := range s.Data {
-		err := s.SQL.upsertRecursive(strings.Split(k, "."), s.Data[j], i)
+		err := s.SQL.upsertRecursive(strings.Split(k, "."), s.Data[j], data)
 		if err != nil {
 			return wrapErr(err)
 		}
@@ -36,6 +44,11 @@ func (s *Storage) UpsertGlobal(k string, i interface{}) error {
 // in all documents. This will change all existing paths to the given
 // structure and add new if the path is missing for a document
 func (s *Storage) UpdateGlobal(k string, i interface{}) error {
+	data, err := s.SQL.toInterfaceMap(i)
+	if err != nil {
+		return wrapErr(err)
+	}
+
 	c := s.AD
 	for j := range s.Data {
 		s.AD = j
@@ -44,7 +57,7 @@ func (s *Storage) UpdateGlobal(k string, i interface{}) error {
 			continue
 		}
 
-		err := s.SQL.upsertRecursive(strings.Split(k, "."), s.Data[s.AD], i)
+		err := s.SQL.upsertRecursive(strings.Split(k, "."), s.Data[s.AD], data)
 		if err != nil {
 			return wrapErr(err)
 		}
@@ -101,7 +114,7 @@ func (s *Storage) GetFirstGlobal(k string) map[int]interface{} {
 //			test: someValue-2
 //
 func (s *Storage) Get(k string) ([]string, error) {
-	fmt.Println("Warn: Deprecated is Get(). Will be replaced by FindKeys() in the future.")
+	issueWarning(deprecatedFeature, "Get()", "FindKeys()")
 	obj, err := s.SQL.get(k, s.Data[s.AD])
 	if err != nil {
 		return nil, wrapErr(err)
@@ -194,7 +207,7 @@ func (s *Storage) Delete(k string) error {
 		return wrapErr(err)
 	}
 
-	return s.Write()
+	return s.stateReload()
 }
 
 // DeleteGlobal is the same as Delete but will try to delete
@@ -205,7 +218,7 @@ func (s *Storage) DeleteGlobal(k string) error {
 		return wrapErr(err)
 	}
 
-	return s.Write()
+	return s.stateReload()
 }
 
 // MergeDBs is a SQL wrapper that merges a source yaml file
@@ -216,5 +229,5 @@ func (s *Storage) MergeDBs(path string) error {
 		return wrapErr(err)
 	}
 
-	return s.Write()
+	return s.stateReload()
 }

@@ -144,6 +144,7 @@ func TestGetFirst(t *testing.T) {
 	path := ".test/db-query.yaml"
 	state, err := db.NewStorageFactory(path)
 	assert.Equal(t, err, nil)
+	state.InMem(true)
 
 	err = state.Upsert(
 		"test.path",
@@ -237,6 +238,7 @@ func TestGetPath(t *testing.T) {
 	path := ".test/db-get-path.yaml"
 	state, err := db.NewStorageFactory(path)
 	assert.Equal(t, err, nil)
+	state.InMem(true)
 
 	err = state.Upsert(
 		"test.path",
@@ -308,6 +310,7 @@ func TestDelete(t *testing.T) {
 	path := ".test/db-delete-key.yaml"
 	state, err := db.NewStorageFactory(path)
 	assert.Equal(t, err, nil)
+	state.InMem(true)
 
 	err = state.Upsert(
 		"test.path",
@@ -342,6 +345,7 @@ func TestGet(t *testing.T) {
 	path := ".test/db-get-keys.yaml"
 	state, err := db.NewStorageFactory(path)
 	assert.Equal(t, err, nil)
+	state.InMem(true)
 
 	err = state.Upsert(
 		"path-1",
@@ -403,6 +407,7 @@ func TestGeneric(t *testing.T) {
 	path := ".test/db-generic.yaml"
 	state, err := db.NewStorageFactory(path)
 	assert.Equal(t, err, nil)
+	state.InMem(true)
 
 	err = state.Upsert(
 		".someKey",
@@ -501,6 +506,7 @@ func TestMultiDoc(t *testing.T) {
 
 	path := ".test/db-multidoc.yaml"
 	state, err := db.NewStorageFactory(path)
+	state.InMem(true)
 	assert.Equal(t, err, nil)
 	assert.Equal(t, len(state.Data), 1)
 
