@@ -82,9 +82,13 @@ func (s *Storage) dbinit() error {
 	if !stateExists {
 		s.Data = append(s.Data, emptyMap())
 		s.AD = 0
+		err = s.Write()
+		if err != nil {
+			return wrapErr(err)
+		}
 	}
 
-	err = s.stateReload()
+	err = s.Read()
 	if err != nil {
 		return wrapErr(err)
 	}
