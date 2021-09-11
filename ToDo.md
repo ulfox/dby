@@ -91,11 +91,3 @@ some:
 ### Tests
 
 - Cover cache state during operations
-- Cover different upsert structures.
-    - []string
-    - []map[string]string
-    - []interface{}
-    - []map[string][]string
-    - []map[string][]interface{}
-
-
