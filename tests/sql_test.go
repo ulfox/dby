@@ -141,10 +141,8 @@ func TestUpsert(t *testing.T) {
 func TestGetFirst(t *testing.T) {
 	t.Parallel()
 
-	path := ".test/db-query.yaml"
-	state, err := db.NewStorageFactory(path)
+	state, err := db.NewStorageFactory()
 	assert.Equal(t, err, nil)
-	state.InMem(true)
 
 	err = state.Upsert(
 		"test.path",
@@ -226,19 +224,14 @@ func TestGetFirst(t *testing.T) {
 	val, err = state.GetFirst("key-30")
 	assert.Equal(t, err, nil)
 	assert.Equal(t, val, 30)
-
-	err = os.Remove(path)
-	assert.Equal(t, err, nil)
 }
 
 // TestGetPath run unit tests on Get object from path
 func TestGetPath(t *testing.T) {
 	t.Parallel()
 
-	path := ".test/db-get-path.yaml"
-	state, err := db.NewStorageFactory(path)
+	state, err := db.NewStorageFactory()
 	assert.Equal(t, err, nil)
-	state.InMem(true)
 
 	err = state.Upsert(
 		"test.path",
@@ -297,9 +290,6 @@ func TestGetPath(t *testing.T) {
 	val, err = state.GetPath("some.[2].array")
 	assert.NotEqual(t, err, nil)
 	assert.Equal(t, val, nil)
-
-	err = os.Remove(path)
-	assert.Equal(t, err, nil)
 }
 
 // TestDelete run unit tests for deleting objects
@@ -310,7 +300,6 @@ func TestDelete(t *testing.T) {
 	path := ".test/db-delete-key.yaml"
 	state, err := db.NewStorageFactory(path)
 	assert.Equal(t, err, nil)
-	state.InMem(true)
 
 	err = state.Upsert(
 		"test.path",
@@ -342,10 +331,8 @@ func TestDelete(t *testing.T) {
 func TestGet(t *testing.T) {
 	t.Parallel()
 
-	path := ".test/db-get-keys.yaml"
-	state, err := db.NewStorageFactory(path)
+	state, err := db.NewStorageFactory()
 	assert.Equal(t, err, nil)
-	state.InMem(true)
 
 	err = state.Upsert(
 		"path-1",
@@ -395,9 +382,6 @@ func TestGet(t *testing.T) {
 	assert.Equal(t, m["k11"], "v11")
 
 	assert.Equal(t, assertData.GetError(), nil)
-
-	err = os.Remove(path)
-	assert.Equal(t, err, nil)
 }
 
 // TestGeneric run generic tests for all scenarios
@@ -504,9 +488,7 @@ func TestGeneric(t *testing.T) {
 func TestMultiDoc(t *testing.T) {
 	t.Parallel()
 
-	path := ".test/db-multidoc.yaml"
-	state, err := db.NewStorageFactory(path)
-	state.InMem(true)
+	state, err := db.NewStorageFactory()
 	assert.Equal(t, err, nil)
 	assert.Equal(t, len(state.Data), 1)
 
@@ -650,9 +632,6 @@ func TestMultiDoc(t *testing.T) {
 		}
 
 	}
-
-	err = os.Remove(path)
-	assert.Equal(t, err, nil)
 }
 
 func checkArrays(v string, l []string) bool {

@@ -62,10 +62,8 @@ func NewStorageFactory(p ...interface{}) (*Storage, error) {
 }
 
 func (s *Storage) dbinit() error {
-	emptyDoc := append(s.Data, map[string]string{})
-
 	if s.mem {
-		s.Data = emptyDoc
+		s.Data = append(s.Data, emptyMap())
 		s.AD = 0
 		return nil
 	}
@@ -82,7 +80,7 @@ func (s *Storage) dbinit() error {
 	}
 
 	if !stateExists {
-		s.Data = emptyDoc
+		s.Data = append(s.Data, emptyMap())
 		s.AD = 0
 	}
 
