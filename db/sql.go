@@ -5,34 +5,22 @@ import (
 	"strconv"
 	"strings"
 
+	v1 "github.com/ulfox/dby/cache/v1"
+	v2 "github.com/ulfox/dby/cache/v2"
 	"gopkg.in/yaml.v2"
 )
 
-// Query hosts results from SQL methods
-type Query struct {
-	KeysFound []string
-	Results   interface{}
-}
-
-// Clear deletes all objects from Query
-func (q *Query) Clear() *Query {
-	q.KeysFound = nil
-	q.Results = nil
-
-	return q
-}
-
 // SQL is the core struct for working with maps.
 type SQL struct {
-	Query Query
-	Cache Cache
+	Query v2.Cache
+	Cache v1.Cache
 }
 
 // NewSQLFactory creates a new empty SQL
 func NewSQLFactory() *SQL {
 	sql := &SQL{
-		Query: Query{},
-		Cache: NewCacheFactory(),
+		Query: v2.NewCacheFactory(),
+		Cache: v1.NewCacheFactory(),
 	}
 	return sql
 }
@@ -55,7 +43,7 @@ func (s *SQL) getObj(k string, o interface{}) (interface{}, bool) {
 	}
 
 	for thisKey, thisObj := range obj {
-		s.Cache.Keys = append(s.Cache.Keys, thisKey.(string))
+		s.Cache.AddKey(thisKey.(string))
 		if thisKey == k {
 			return thisObj, true
 		}
@@ -64,7 +52,7 @@ func (s *SQL) getObj(k string, o interface{}) (interface{}, bool) {
 		if objFinal, found := s.getObj(k, thisObj); found {
 			return objFinal, found
 		}
-		s.Cache.dropLastKey()
+		s.Cache.DropLastKey()
 	}
 
 	return nil, false
@@ -84,13 +72,13 @@ func (s *SQL) getArrayObject(k string, o interface{}) (interface{}, bool) {
 	}
 
 	for i, thisArrayObj := range arrayObj {
-		s.Cache.Keys = append(s.Cache.Keys, "["+strconv.Itoa(i)+"]")
+		s.Cache.AddKey("[" + strconv.Itoa(i) + "]")
 		arrayObjFinal, found := s.getObj(k, thisArrayObj)
 		if found {
 			return arrayObjFinal, found
 		}
 
-		s.Cache.dropLastKey()
+		s.Cache.DropLastKey()
 	}
 
 	return nil, false
@@ -151,7 +139,7 @@ func (s *SQL) getPath(k []string, o interface{}) (interface{}, error) {
 		if thisKey != k[0] {
 			continue
 		}
-		s.Cache.Keys = append(s.Cache.Keys, k[0])
+		s.Cache.AddKey(k[0])
 		if len(k) == 1 {
 			return thisObj, nil
 		}
@@ -211,13 +199,13 @@ func (s *SQL) delPath(k string, o interface{}) error {
 		return nil
 	}
 
-	s.Cache.dropKeys()
+	s.Cache.DropKeys()
 	obj, err := s.getPath(keys[:len(keys)-1], o)
 	if err != nil {
 		return wrapErr(err)
 	}
 
-	s.Cache.dropKeys()
+	s.Cache.DropKeys()
 	if !s.deleteItem(keys[len(keys)-1], obj) {
 		return wrapErr(keyDoesNotExist, k)
 	}
@@ -240,16 +228,16 @@ func (s *SQL) get(k string, o interface{}) ([]string, error) {
 			break
 		}
 
-		key = strings.Join(s.Cache.Keys, ".")
-		s.Query.KeysFound = append(s.Query.KeysFound, key)
+		key = strings.Join(s.Cache.GetKeys(), ".")
+		s.Query.AddKey(key)
 
 		if err := s.delPath(key, s.Cache.V1); err != nil {
-			return s.Query.KeysFound, wrapErr(err)
+			return s.Query.GetKeys(), wrapErr(err)
 		}
-		s.Cache.dropKeys()
+		s.Cache.DropKeys()
 	}
 
-	return s.Query.KeysFound, nil
+	return s.Query.GetKeys(), nil
 }
 
 func (s *SQL) getFirst(k string, o interface{}) (interface{}, error) {
@@ -284,6 +272,25 @@ func (s *SQL) getFirst(k string, o interface{}) (interface{}, error) {
 
 	path, err := s.getPath(strings.Split(keys[s.Cache.C2], "."), o)
 	return path, wrapErr(err)
+}
+
+func (s *SQL) toInterfaceMap(v interface{}) (interface{}, error) {
+	var dataNew interface{}
+
+	if v == nil {
+		return make(map[interface{}]interface{}), nil
+	}
+
+	dataBytes, err := yaml.Marshal(&v)
+	if err != nil {
+		return nil, wrapErr(err)
+	}
+	err = yaml.Unmarshal(dataBytes, &dataNew)
+	if err != nil {
+		return nil, wrapErr(err)
+	}
+
+	return dataNew, nil
 }
 
 func (s *SQL) upsertRecursive(k []string, o, v interface{}) error {

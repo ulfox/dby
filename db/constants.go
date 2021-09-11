@@ -1,5 +1,7 @@
 package db
 
+import "fmt"
+
 type objectType int
 
 const (
@@ -16,7 +18,7 @@ const (
 	arrayMapStringArrayInterface
 )
 
-// Inormational Error constants. Used during a return err
+// Informational Error constants. Used during a return err
 const (
 	notAMap         = "target object is not a map"
 	notArrayObj     = "received a non array object but expected []interface{}"
@@ -32,6 +34,16 @@ const (
 	fieldNotString  = "[%s] with value [%s] is not a string"
 	notAType        = "value is not a %s"
 )
+
+// Warnings
+const (
+	deprecatedFeature = "Warn: Deprecated is [%s]. Will be replaced by [%s] in the future"
+)
+
+func issueWarning(s string, o ...interface{}) {
+	warn := fmt.Sprintf(s, o...)
+	fmt.Println(warn)
+}
 
 func getObjectType(o interface{}) objectType {
 	_, isMap := o.(map[interface{}]interface{})
