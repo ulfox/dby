@@ -201,7 +201,7 @@ func (s *Storage) SwitchDoc(n string) error {
 // DeleteAll for removing all docs
 func (s *Storage) DeleteAll(delete bool) *Storage {
 	if delete {
-		s.Data = nil
+		s.Data = make([]interface{}, 0)
 	}
 	return s
 }
