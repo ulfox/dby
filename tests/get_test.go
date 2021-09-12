@@ -38,7 +38,7 @@ func TestGet(t *testing.T) {
 	assert.Equal(t, err, nil)
 
 	assertData := db.NewConvertFactory()
-	assertData.Input(storage.State.GetData())
+	assertData.Input(storage.GetData())
 
 	assertData.
 		Key("path-1").

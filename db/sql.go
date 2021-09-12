@@ -13,13 +13,13 @@ import (
 // SQL is the core struct for working with maps.
 type SQL struct {
 	v1.Cache
-	Query v2.Cache
+	v2.Query
 }
 
 // NewSQLFactory creates a new empty SQL
 func NewSQLFactory() *SQL {
 	sql := &SQL{
-		Query: v2.NewCacheFactory(),
+		Query: v2.NewQueryFactory(),
 		Cache: v1.NewCacheFactory(),
 	}
 	return sql
@@ -218,20 +218,20 @@ func (s *SQL) get(k string, o interface{}) ([]string, error) {
 	var key string
 
 	s.Clear()
-	err = s.Cache.V1E(copyMap(o))
+	err = s.V1E(copyMap(o))
 	if err != nil {
 		return nil, wrapErr(err)
 	}
 
 	for {
-		if _, found := s.getObj(k, s.Cache.V1()); !found {
+		if _, found := s.getObj(k, s.V1()); !found {
 			break
 		}
 
 		key = strings.Join(s.Cache.GetKeys(), ".")
 		s.Query.AddKey(key)
 
-		if err := s.delPath(key, s.Cache.V1()); err != nil {
+		if err := s.delPath(key, s.V1()); err != nil {
 			return s.Query.GetKeys(), wrapErr(err)
 		}
 		s.Cache.DropKeys()
@@ -295,7 +295,6 @@ func (s *SQL) toInterfaceMap(v interface{}) (interface{}, error) {
 
 func (s *SQL) upsertRecursive(k []string, o, v interface{}) error {
 	s.Clear()
-
 	if err := checkKeyPath(k); err != nil {
 		return wrapErr(err)
 	}

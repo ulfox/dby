@@ -30,10 +30,10 @@ func TestStorage(t *testing.T) {
 	empty, err := db.NewStorageFactory(path)
 	assert.Equal(t, err, nil)
 
-	assert.Equal(t, len(empty.State.GetAllData()), 1)
+	assert.Equal(t, len(empty.GetAllData()), 1)
 
 	assertData := db.NewConvertFactory()
-	assertData.Input(empty.State.GetData())
+	assertData.Input(empty.GetData())
 
 	emptyMap, err := assertData.GetMap()
 	assert.Equal(t, err, nil)
@@ -53,8 +53,8 @@ func TestStorage(t *testing.T) {
 	data, err := db.NewStorageFactory(path)
 	assert.Equal(t, err, nil)
 
-	assert.Equal(t, len(data.State.GetAllData()), 1)
-	assertData.Input(data.State.GetData())
+	assert.Equal(t, len(data.GetAllData()), 1)
+	assertData.Input(data.GetData())
 
 	assertData.Key("test")
 	assert.Equal(t, assertData.GetError(), nil)
@@ -67,14 +67,14 @@ func TestStorage(t *testing.T) {
 
 	data.InMem(true)
 	data.DeleteAll(true)
-	assert.Equal(t, len(data.State.GetAllData()), 0)
+	assert.Equal(t, len(data.GetAllData()), 0)
 
 	data, dataMap = nil, nil
 
 	dataDue, err := db.NewStorageFactory(path)
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(dataDue.State.GetAllData()), 1)
-	assertData.Input(dataDue.State.GetData())
+	assert.Equal(t, len(dataDue.GetAllData()), 1)
+	assertData.Input(dataDue.GetData())
 
 	assertData.Key("test")
 	assert.Equal(t, assertData.GetError(), nil)
@@ -87,9 +87,9 @@ func TestStorage(t *testing.T) {
 
 	memData, err := db.NewStorageFactory()
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(memData.State.GetAllData()), 1)
+	assert.Equal(t, len(memData.GetAllData()), 1)
 
-	assertData.Input(memData.State.GetData())
+	assertData.Input(memData.GetData())
 
 	emptyMap, err = assertData.GetMap()
 	assert.Equal(t, err, nil)
@@ -103,7 +103,7 @@ func TestStorage(t *testing.T) {
 		},
 	)
 	assert.Equal(t, err, nil)
-	assertData.Input(memData.State.GetData())
+	assertData.Input(memData.GetData())
 
 	assertData.Key("test")
 	assert.Equal(t, assertData.GetError(), nil)

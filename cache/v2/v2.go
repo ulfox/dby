@@ -1,29 +1,29 @@
 package v2
 
-// Cache hosts results from SQL methods
-type Cache struct {
-	v1 []string
+// Query hosts results from SQL methods
+type Query struct {
+	keys []string
 }
 
-// NewCacheFactory for creating a new Cache
-func NewCacheFactory() Cache {
-	cache := Cache{
-		v1: make([]string, 0),
+// NewQueryFactory for creating a new Query
+func NewQueryFactory() Query {
+	Query := Query{
+		keys: make([]string, 0),
 	}
-	return cache
+	return Query
 }
 
-// Clear for clearing the cache
-func (c *Cache) Clear() {
-	c.v1 = make([]string, 0)
+// Clear for clearing the Query
+func (c *Query) Clear() {
+	c.keys = make([]string, 0)
 }
 
-// AddKey for appending a new Key to cache
-func (c *Cache) AddKey(k string) {
-	c.v1 = append(c.v1, k)
+// AddKey for appending a new Key to Query
+func (c *Query) AddKey(k string) {
+	c.keys = append(c.keys, k)
 }
 
-// GetKeys returns Cache.KeysFound
-func (c *Cache) GetKeys() []string {
-	return c.v1
+// GetKeys returns Query.KeysFound
+func (c *Query) GetKeys() []string {
+	return c.keys
 }

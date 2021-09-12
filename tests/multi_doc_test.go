@@ -14,34 +14,34 @@ func TestMultiDoc(t *testing.T) {
 
 	storage, err := db.NewStorageFactory()
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(storage.State.GetAllData()), 1)
+	assert.Equal(t, len(storage.GetAllData()), 1)
 
 	err = storage.AddDoc()
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(storage.State.GetAllData()), 2)
+	assert.Equal(t, len(storage.GetAllData()), 2)
 
-	assert.Equal(t, storage.State.GetAD(), 1)
+	assert.Equal(t, storage.GetAD(), 1)
 	err = storage.Switch(0)
 	assert.Equal(t, err, nil)
-	assert.Equal(t, storage.State.GetAD(), 0)
+	assert.Equal(t, storage.GetAD(), 0)
 
 	err = storage.DeleteDoc(1)
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(storage.State.GetAllData()), 1)
+	assert.Equal(t, len(storage.GetAllData()), 1)
 
 	err = storage.DeleteDoc(0)
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(storage.State.GetAllData()), 0)
+	assert.Equal(t, len(storage.GetAllData()), 0)
 
 	err = storage.AddDoc()
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(storage.State.GetAllData()), 1)
+	assert.Equal(t, len(storage.GetAllData()), 1)
 
 	err = storage.DeleteAll(true).
 		ImportDocs("../docs/examples/manifests/deployment.yaml", true)
 	assert.Equal(t, err, nil)
 
-	assert.Equal(t, len(storage.State.GetAllData()), 8)
+	assert.Equal(t, len(storage.GetAllData()), 8)
 
 	err = storage.SetNames("kind", "metadata.name")
 	assert.Equal(t, err, nil)
@@ -75,12 +75,12 @@ func TestMultiDoc(t *testing.T) {
 
 	err = storage.AddDoc()
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(storage.State.GetAllData()), 9)
+	assert.Equal(t, len(storage.GetAllData()), 9)
 	err = storage.SetNames("kind", "metadata.name")
 	assert.Equal(t, err, nil)
 	assert.Equal(t, len(storage.ListDocs()), 8)
-	assert.Equal(t, len(storage.State.GetAllData()), 9)
-	for i, j := range storage.State.Lib() {
+	assert.Equal(t, len(storage.GetAllData()), 9)
+	for i, j := range storage.Lib() {
 		err = storage.Switch(j)
 		assert.Equal(t, err, nil)
 
@@ -101,14 +101,14 @@ func TestMultiDoc(t *testing.T) {
 	c0 := 0
 	err = storage.AddDoc()
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(storage.State.GetAllData()), 10)
+	assert.Equal(t, len(storage.GetAllData()), 10)
 	err = storage.AddDoc()
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(storage.State.GetAllData()), 11)
+	assert.Equal(t, len(storage.GetAllData()), 11)
 	err = storage.SetNames("kind", "metadata.name")
 	assert.Equal(t, err, nil)
 
-	for i := range storage.State.GetAllData() {
+	for i := range storage.GetAllData() {
 		err = storage.Switch(i)
 		assert.Equal(t, err, nil)
 
@@ -127,7 +127,7 @@ func TestMultiDoc(t *testing.T) {
 		sName, ok := name.(string)
 		assert.Equal(t, ok, true)
 
-		doc, ok := storage.State.LibIndex(strings.ToLower(sKind) + "/" + strings.ToLower(sName))
+		doc, ok := storage.LibIndex(strings.ToLower(sKind) + "/" + strings.ToLower(sName))
 		assert.Equal(t, ok, true)
 		assert.Equal(t, doc, i)
 	}

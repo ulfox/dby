@@ -129,8 +129,8 @@ func (c *state) Lib() map[string]int {
 	return c.lib
 }
 
-// AddDoc for adding a document to the lib map
-func (c *state) AddDoc(k string, i int) error {
+// addDoc for adding a document to the lib map
+func (c *state) addDoc(k string, i int) error {
 	if err := c.IndexInRange(i); err != nil {
 		return wrapErr(err)
 	}

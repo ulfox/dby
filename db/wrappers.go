@@ -10,7 +10,7 @@ func (s *Storage) Upsert(k string, i interface{}) error {
 	if err != nil {
 		return wrapErr(err)
 	}
-	err = s.SQL.upsertRecursive(strings.Split(k, "."), s.State.GetData(), data)
+	err = s.SQL.upsertRecursive(strings.Split(k, "."), s.GetData(), data)
 	if err != nil {
 		return wrapErr(err)
 	}
@@ -27,16 +27,16 @@ func (s *Storage) UpsertGlobal(k string, i interface{}) error {
 		return wrapErr(err)
 	}
 
-	c := s.State.GetAD()
-	for j := range s.State.GetAllData() {
-		s.State.SetAD(j)
-		err := s.SQL.upsertRecursive(strings.Split(k, "."), s.State.GetData(), data)
+	c := s.GetAD()
+	for j := range s.GetAllData() {
+		s.SetAD(j)
+		err := s.SQL.upsertRecursive(strings.Split(k, "."), s.GetData(), data)
 		if err != nil {
 			return wrapErr(err)
 		}
 	}
 
-	s.State.SetAD(c)
+	s.SetAD(c)
 
 	return s.stateReload()
 }
@@ -50,21 +50,21 @@ func (s *Storage) UpdateGlobal(k string, i interface{}) error {
 		return wrapErr(err)
 	}
 
-	c := s.State.GetAD()
-	for j := range s.State.GetAllData() {
-		s.State.SetAD(j)
+	c := s.GetAD()
+	for j := range s.GetAllData() {
+		s.SetAD(j)
 
 		if _, err := s.GetPath(k); err != nil {
 			continue
 		}
 
-		err := s.SQL.upsertRecursive(strings.Split(k, "."), s.State.GetData(), data)
+		err := s.SQL.upsertRecursive(strings.Split(k, "."), s.GetData(), data)
 		if err != nil {
 			return wrapErr(err)
 		}
 	}
 
-	s.State.SetAD(c)
+	s.SetAD(c)
 
 	return s.stateReload()
 }
@@ -73,7 +73,7 @@ func (s *Storage) UpdateGlobal(k string, i interface{}) error {
 // yaml hierarchy. If two keys are on the same level but under
 // different paths, then the selection will be random
 func (s *Storage) GetFirst(k string) (interface{}, error) {
-	obj, err := s.SQL.getFirst(k, s.State.GetData())
+	obj, err := s.SQL.getFirst(k, s.GetData())
 	if err != nil {
 		return nil, wrapErr(err)
 	}
@@ -87,18 +87,18 @@ func (s *Storage) GetFirst(k string) (interface{}, error) {
 func (s *Storage) GetFirstGlobal(k string) map[int]interface{} {
 	found := make(map[int]interface{})
 
-	c := s.State.GetAD()
-	for j := range s.State.GetAllData() {
-		s.State.SetAD(j)
+	c := s.GetAD()
+	for j := range s.GetAllData() {
+		s.SetAD(j)
 
-		obj, err := s.SQL.getFirst(k, s.State.GetData())
+		obj, err := s.SQL.getFirst(k, s.GetData())
 		if err != nil {
 			continue
 		}
 		found[j] = obj
 	}
 
-	s.State.SetAD(c)
+	s.SetAD(c)
 
 	return found
 }
@@ -108,7 +108,7 @@ func (s *Storage) GetFirstGlobal(k string) map[int]interface{} {
 // For now we keep both for compatibility
 func (s *Storage) Get(k string) ([]string, error) {
 	issueWarning(deprecatedFeature, "Get()", "FindKeys()")
-	obj, err := s.SQL.get(k, s.State.GetData())
+	obj, err := s.SQL.get(k, s.GetData())
 	if err != nil {
 		return nil, wrapErr(err)
 	}
@@ -119,7 +119,7 @@ func (s *Storage) Get(k string) ([]string, error) {
 // Get is a SQL wrapper that finds all the paths for a given
 // e.g. ["key-1.test", "key-2.key-3.test"] will be returned
 func (s *Storage) FindKeys(k string) ([]string, error) {
-	obj, err := s.SQL.get(k, s.State.GetData())
+	obj, err := s.SQL.get(k, s.GetData())
 	if err != nil {
 		return nil, wrapErr(err)
 	}
@@ -133,18 +133,18 @@ func (s *Storage) FindKeys(k string) ([]string, error) {
 func (s *Storage) FindKeysGlobal(k string) map[int][]string {
 	found := make(map[int][]string)
 
-	c := s.State.GetAD()
-	for j := range s.State.GetAllData() {
-		s.State.SetAD(j)
+	c := s.GetAD()
+	for j := range s.GetAllData() {
+		s.SetAD(j)
 
-		obj, err := s.SQL.get(k, s.State.GetData())
+		obj, err := s.SQL.get(k, s.GetData())
 		if err != nil || len(obj) == 0 {
 			continue
 		}
 		found[j] = obj
 	}
 
-	s.State.SetAD(c)
+	s.SetAD(c)
 
 	return found
 }
@@ -158,7 +158,7 @@ func (s *Storage) FindKeysGlobal(k string) map[int][]string {
 //
 func (s *Storage) GetPath(k string) (interface{}, error) {
 	keys := strings.Split(k, ".")
-	obj, err := s.SQL.getPath(keys, s.State.GetData())
+	obj, err := s.SQL.getPath(keys, s.GetData())
 	if err != nil {
 		return nil, wrapErr(err)
 	}
@@ -172,18 +172,18 @@ func (s *Storage) GetPathGlobal(k string) map[int]interface{} {
 	found := make(map[int]interface{})
 	keys := strings.Split(k, ".")
 
-	c := s.State.GetAD()
-	for j := range s.State.GetAllData() {
-		s.State.SetAD(j)
+	c := s.GetAD()
+	for j := range s.GetAllData() {
+		s.SetAD(j)
 
-		obj, err := s.SQL.getPath(keys, s.State.GetData())
+		obj, err := s.SQL.getPath(keys, s.GetData())
 		if err != nil {
 			continue
 		}
 		found[j] = obj
 	}
 
-	s.State.SetAD(c)
+	s.SetAD(c)
 
 	return found
 }
@@ -193,7 +193,7 @@ func (s *Storage) GetPathGlobal(k string) map[int]interface{} {
 // validate that the path exists, then it would export the value of
 // GetPath("key-1.key-2") and delete the object that matches key-3
 func (s *Storage) Delete(k string) error {
-	err := s.SQL.delPath(k, s.State.GetData())
+	err := s.SQL.delPath(k, s.GetData())
 	if err != nil {
 		return wrapErr(err)
 	}
@@ -204,7 +204,7 @@ func (s *Storage) Delete(k string) error {
 // DeleteGlobal is the same as Delete but will try to delete
 // the path on all docs (if found)
 func (s *Storage) DeleteGlobal(k string) error {
-	err := s.SQL.delPath(k, s.State.GetData())
+	err := s.SQL.delPath(k, s.GetData())
 	if err != nil {
 		return wrapErr(err)
 	}
@@ -215,7 +215,7 @@ func (s *Storage) DeleteGlobal(k string) error {
 // MergeDBs is a SQL wrapper that merges a source yaml file
 // with the DBy local yaml file.
 func (s *Storage) MergeDBs(path string) error {
-	err := s.SQL.mergeDBs(path, s.State.GetData())
+	err := s.SQL.mergeDBs(path, s.GetData())
 	if err != nil {
 		return wrapErr(err)
 	}
