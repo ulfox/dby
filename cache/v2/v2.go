@@ -1,4 +1,4 @@
-package v1
+package v2
 
 // Cache hosts results from SQL methods
 type Cache struct {

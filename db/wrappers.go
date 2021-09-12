@@ -43,7 +43,7 @@ func (s *Storage) UpsertGlobal(k string, i interface{}) error {
 
 // UpdateGlobal is a SQL wrapper for adding/updating map structures
 // in all documents. This will change all existing paths to the given
-// structure and add new if the path is missing for a document
+// structure (if any)
 func (s *Storage) UpdateGlobal(k string, i interface{}) error {
 	data, err := s.SQL.toInterfaceMap(i)
 	if err != nil {
@@ -103,17 +103,9 @@ func (s *Storage) GetFirstGlobal(k string) map[int]interface{} {
 	return found
 }
 
-// Get is a SQL wrapper that finds all the paths for a given
-// e.g. ["key-1.test", "key-2.key-3.test"] will be returned
-// if "test" was the key asked from the following yaml
-// ---------
-//
-// key-1:
-//		test: someValue-1
-// key-2:
-//		key-3:
-//			test: someValue-2
-//
+// Get is alias of FindKeys. This function will be replaced
+// by FindKeys in the future.
+// For now we keep both for compatibility
 func (s *Storage) Get(k string) ([]string, error) {
 	issueWarning(deprecatedFeature, "Get()", "FindKeys()")
 	obj, err := s.SQL.get(k, s.State.GetData())
@@ -124,10 +116,8 @@ func (s *Storage) Get(k string) ([]string, error) {
 	return obj, nil
 }
 
-// FindKeys is alias of Get. This function will replace
-// Get in the future since this name for finding keys
-// makes more sense
-// For now we keep both for compatibility
+// Get is a SQL wrapper that finds all the paths for a given
+// e.g. ["key-1.test", "key-2.key-3.test"] will be returned
 func (s *Storage) FindKeys(k string) ([]string, error) {
 	obj, err := s.SQL.get(k, s.State.GetData())
 	if err != nil {

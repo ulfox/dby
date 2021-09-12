@@ -58,6 +58,19 @@ func NewStorageFactory(p ...interface{}) (*Storage, error) {
 	return state, nil
 }
 
+func (s *Storage) Close() error {
+	if !s.mem {
+		err := s.Write()
+		if err != nil {
+			return wrapErr(err)
+		}
+	}
+
+	s.State.Clear()
+	s.SQL.Clear()
+	return nil
+}
+
 func (s *Storage) dbinit() error {
 	if s.mem {
 		s.State.PushData(emptyMap())
