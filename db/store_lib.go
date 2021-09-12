@@ -22,12 +22,10 @@ var wrapErr erf = e.WrapErr
 // the Yaml Data and SQL
 type Storage struct {
 	sync.Mutex
-	SQL  *SQL
-	Data []interface{}
-	Lib  map[string]int
-	AD   int
-	Path string
-	mem  bool
+	State *state
+	SQL   *SQL
+	Path  string
+	mem   bool
 }
 
 // NewStorageFactory for creating a new Storage
@@ -46,11 +44,10 @@ func NewStorageFactory(p ...interface{}) (*Storage, error) {
 	}
 
 	state := &Storage{
-		SQL:  NewSQLFactory(),
-		Path: path,
-		Data: make([]interface{}, 0),
-		Lib:  make(map[string]int),
-		mem:  inMem,
+		SQL:   NewSQLFactory(),
+		State: newStateFactory(),
+		Path:  path,
+		mem:   inMem,
 	}
 
 	err := state.dbinit()
@@ -63,8 +60,8 @@ func NewStorageFactory(p ...interface{}) (*Storage, error) {
 
 func (s *Storage) dbinit() error {
 	if s.mem {
-		s.Data = append(s.Data, emptyMap())
-		s.AD = 0
+		s.State.PushData(emptyMap())
+		s.State.SetAD(0)
 		return nil
 	}
 
@@ -80,8 +77,8 @@ func (s *Storage) dbinit() error {
 	}
 
 	if !stateExists {
-		s.Data = append(s.Data, emptyMap())
-		s.AD = 0
+		s.State.PushData(emptyMap())
+		s.State.SetAD(0)
 		err = s.Write()
 		if err != nil {
 			return wrapErr(err)
@@ -104,8 +101,8 @@ func (s *Storage) dbinit() error {
 // If a document has both paths, a name will be generated
 // and will be mapped with the document's index
 func (s *Storage) SetNames(f, l string) error {
-	for i := range s.Data {
-		s.AD = i
+	for i := range s.State.GetAllData() {
+		s.State.SetAD(i)
 		kind, err := s.GetPath(strings.ToLower(f))
 		if err != nil {
 			continue
@@ -124,9 +121,17 @@ func (s *Storage) SetNames(f, l string) error {
 		if !ok {
 			wrapErr(fieldNotString, strings.ToLower(l), name)
 		}
-
-		docName := fmt.Sprintf("%s/%s", strings.ToLower(sKind), strings.ToLower(sName))
-		s.Lib[docName] = i
+		err = s.State.AddDoc(
+			fmt.Sprintf(
+				"%s/%s",
+				strings.ToLower(sKind),
+				strings.ToLower(sName),
+			),
+			i,
+		)
+		if err != nil {
+			return wrapErr(err)
+		}
 	}
 
 	return nil
@@ -138,21 +143,19 @@ func (s *Storage) SetName(n string, i int) error {
 	if err != nil {
 		return wrapErr(err)
 	}
-	s.Lib[strings.ToLower(n)] = i
+	err = s.State.AddDoc(n, i)
+	if err != nil {
+		return wrapErr(err)
+	}
 
 	return nil
 }
 
 // DeleteDoc will the document with the given index
 func (s *Storage) DeleteDoc(i int) error {
-	if i > len(s.Data)-1 && i != 0 {
-		return wrapErr(libOutOfIndex)
-	}
-
-	s.Data = append(s.Data[:i], s.Data[i+1:]...)
-
-	if s.AD == i {
-		s.AD = 0
+	err := s.State.DeleteData(i)
+	if err != nil {
+		return wrapErr(err)
 	}
 
 	return nil
@@ -160,29 +163,25 @@ func (s *Storage) DeleteDoc(i int) error {
 
 // Switch will change Active Document (AD) to the given index
 func (s *Storage) Switch(i int) error {
-	if i > len(s.Data)-1 && i != 0 {
-		return wrapErr(libOutOfIndex)
+	err := s.State.SetAD(i)
+	if err != nil {
+		return wrapErr(err)
 	}
-	s.AD = i
 	return nil
 }
 
 // AddDoc will add a new document to the stack and will switch
 // Active Document index to that document
 func (s *Storage) AddDoc() error {
-	if len(s.Data) == 0 {
-		s.AD = 0
-	} else {
-		s.AD = len(s.Data)
-	}
-	s.Data = append(s.Data, emptyMap())
+	s.State.PushData(emptyMap())
+	s.State.SetAD(len(s.State.GetAllData()) - 1)
 	return s.stateReload()
 }
 
 // ListDocs will return an array with all docs names
 func (s *Storage) ListDocs() []string {
 	var docs []string
-	for i := range s.Lib {
+	for i := range s.State.Lib() {
 		docs = append(docs, i)
 	}
 	return docs
@@ -190,18 +189,19 @@ func (s *Storage) ListDocs() []string {
 
 // SwitchDoc for switching to a document using the documents name (if any)
 func (s *Storage) SwitchDoc(n string) error {
-	i, exists := s.Lib[strings.ToLower(n)]
+	i, exists := s.State.LibIndex(n)
 	if !exists {
 		return wrapErr(docNotExists, strings.ToLower(n))
 	}
-	s.AD = i
+	s.State.SetAD(i)
 	return nil
 }
 
 // DeleteAll for removing all docs
 func (s *Storage) DeleteAll(delete bool) *Storage {
 	if delete {
-		s.Data = make([]interface{}, 0)
+		s.State.DeleteAllData()
+		s.State.ClearLib()
 	}
 	return s
 }
@@ -220,7 +220,7 @@ func (s *Storage) ImportDocs(path string, o ...bool) error {
 	if len(o) > 0 {
 		issueWarning(deprecatedFeature, "ImportDocs(string, bool)", "Storage.DeleteAll(true).ImportDocs(path)")
 		if o[0] {
-			s.Data = nil
+			s.State.UnsetDataArray()
 		}
 	}
 
@@ -248,7 +248,7 @@ func (s *Storage) ImportDocs(path string, o ...bool) error {
 		if len(j.(map[interface{}]interface{})) == 0 {
 			continue
 		}
-		s.Data = append(s.Data, j)
+		s.State.PushData(j)
 	}
 	return s.stateReload()
 }
@@ -270,15 +270,14 @@ func (s *Storage) Read() error {
 	s.Lock()
 	defer s.Unlock()
 
-	s.Data = nil
-	s.Data = make([]interface{}, 0)
+	s.State.DeleteAllData()
 
 	var data interface{}
 	dec := yaml.NewDecoder(bytes.NewReader(f))
 	for {
 		err := dec.Decode(&data)
 		if err == nil {
-			s.Data = append(s.Data, data)
+			s.State.PushData(data)
 			data = nil
 			continue
 		}
@@ -306,7 +305,7 @@ func (s *Storage) Write() error {
 	var buf bytes.Buffer
 	enc := yaml.NewEncoder(&buf)
 
-	for _, j := range s.Data {
+	for _, j := range s.State.GetAllData() {
 		if j == nil {
 			continue
 		}

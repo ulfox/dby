@@ -12,8 +12,8 @@ import (
 
 // SQL is the core struct for working with maps.
 type SQL struct {
+	v1.Cache
 	Query v2.Cache
-	Cache v1.Cache
 }
 
 // NewSQLFactory creates a new empty SQL

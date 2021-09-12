@@ -14,10 +14,10 @@ func TestDelete(t *testing.T) {
 	t.Parallel()
 
 	path := ".test/db-delete-key.yaml"
-	state, err := db.NewStorageFactory(path)
+	storage, err := db.NewStorageFactory(path)
 	assert.Equal(t, err, nil)
 
-	err = state.Upsert(
+	err = storage.Upsert(
 		"test.path",
 		map[string]string{
 			"key-1": "value-1",
@@ -29,14 +29,14 @@ func TestDelete(t *testing.T) {
 
 	assert.Equal(t, err, nil)
 
-	err = state.Delete("test.path.key-1")
+	err = storage.Delete("test.path.key-1")
 	assert.Equal(t, err, nil)
 
-	val, err := state.GetPath("test.path.key-1")
+	val, err := storage.GetPath("test.path.key-1")
 	assert.NotEqual(t, err, nil)
 	assert.Equal(t, val, nil)
 
-	err = state.Delete("test.path.key-12")
+	err = storage.Delete("test.path.key-12")
 	assert.NotEqual(t, err, nil)
 
 	err = os.Remove(path)

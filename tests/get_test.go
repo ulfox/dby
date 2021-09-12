@@ -11,10 +11,10 @@ import (
 func TestGet(t *testing.T) {
 	t.Parallel()
 
-	state, err := db.NewStorageFactory()
+	storage, err := db.NewStorageFactory()
 	assert.Equal(t, err, nil)
 
-	err = state.Upsert(
+	err = storage.Upsert(
 		"path-1",
 		[]map[string][]map[string]string{
 			{
@@ -38,7 +38,7 @@ func TestGet(t *testing.T) {
 	assert.Equal(t, err, nil)
 
 	assertData := db.NewConvertFactory()
-	assertData.Input(state.Data[state.AD])
+	assertData.Input(storage.State.GetData())
 
 	assertData.
 		Key("path-1").
@@ -53,7 +53,7 @@ func TestGet(t *testing.T) {
 
 	assert.Equal(t, m["k01"], "v01")
 
-	obj, err := state.GetPath("path-1.[1].subpath-11.[0]")
+	obj, err := storage.GetPath("path-1.[1].subpath-11.[0]")
 	assert.Equal(t, err, nil)
 	assertData.Input(obj)
 	m, err = assertData.GetMap()

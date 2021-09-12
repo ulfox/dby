@@ -12,40 +12,40 @@ import (
 func TestMultiDoc(t *testing.T) {
 	t.Parallel()
 
-	state, err := db.NewStorageFactory()
+	storage, err := db.NewStorageFactory()
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(state.Data), 1)
+	assert.Equal(t, len(storage.State.GetAllData()), 1)
 
-	err = state.AddDoc()
+	err = storage.AddDoc()
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(state.Data), 2)
+	assert.Equal(t, len(storage.State.GetAllData()), 2)
 
-	assert.Equal(t, state.AD, 1)
-	err = state.Switch(0)
+	assert.Equal(t, storage.State.GetAD(), 1)
+	err = storage.Switch(0)
 	assert.Equal(t, err, nil)
-	assert.Equal(t, state.AD, 0)
+	assert.Equal(t, storage.State.GetAD(), 0)
 
-	err = state.DeleteDoc(1)
+	err = storage.DeleteDoc(1)
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(state.Data), 1)
+	assert.Equal(t, len(storage.State.GetAllData()), 1)
 
-	err = state.DeleteDoc(0)
+	err = storage.DeleteDoc(0)
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(state.Data), 0)
+	assert.Equal(t, len(storage.State.GetAllData()), 0)
 
-	err = state.AddDoc()
+	err = storage.AddDoc()
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(state.Data), 1)
+	assert.Equal(t, len(storage.State.GetAllData()), 1)
 
-	err = state.DeleteAll(true).
+	err = storage.DeleteAll(true).
 		ImportDocs("../docs/examples/manifests/deployment.yaml", true)
 	assert.Equal(t, err, nil)
 
-	assert.Equal(t, len(state.Data), 8)
+	assert.Equal(t, len(storage.State.GetAllData()), 8)
 
-	err = state.SetNames("kind", "metadata.name")
+	err = storage.SetNames("kind", "metadata.name")
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(state.ListDocs()), 8)
+	assert.Equal(t, len(storage.ListDocs()), 8)
 
 	for _, j := range []string{
 		"spec.selector.matchLabels.version",
@@ -54,40 +54,40 @@ func TestMultiDoc(t *testing.T) {
 		"spec.template.selector.matchLabels.version",
 		"spec.template.metadata.labels.version",
 	} {
-		err = state.UpdateGlobal(
+		err = storage.UpdateGlobal(
 			j,
 			"v0.3.0",
 		)
 		assert.Equal(t, err, nil)
 	}
 
-	for _, j := range state.ListDocs() {
+	for _, j := range storage.ListDocs() {
 		if strings.HasPrefix(j, "horizontalpodautoscaler/") {
 			continue
 		}
-		err = state.SwitchDoc(j)
+		err = storage.SwitchDoc(j)
 		assert.Equal(t, err, nil)
 
-		val, err := state.GetPath("metadata.labels.version")
+		val, err := storage.GetPath("metadata.labels.version")
 		assert.Equal(t, err, nil)
 		assert.Equal(t, val, "v0.3.0")
 	}
 
-	err = state.AddDoc()
+	err = storage.AddDoc()
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(state.Data), 9)
-	err = state.SetNames("kind", "metadata.name")
+	assert.Equal(t, len(storage.State.GetAllData()), 9)
+	err = storage.SetNames("kind", "metadata.name")
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(state.ListDocs()), 8)
-	assert.Equal(t, len(state.Data), 9)
-	for i, j := range state.Lib {
-		err = state.Switch(j)
+	assert.Equal(t, len(storage.ListDocs()), 8)
+	assert.Equal(t, len(storage.State.GetAllData()), 9)
+	for i, j := range storage.State.Lib() {
+		err = storage.Switch(j)
 		assert.Equal(t, err, nil)
 
-		kind, err := state.GetPath("kind")
+		kind, err := storage.GetPath("kind")
 		assert.Equal(t, err, nil)
 
-		name, err := state.GetPath("metadata.name")
+		name, err := storage.GetPath("metadata.name")
 		assert.Equal(t, err, nil)
 
 		sKind, ok := kind.(string)
@@ -99,26 +99,26 @@ func TestMultiDoc(t *testing.T) {
 	}
 
 	c0 := 0
-	err = state.AddDoc()
+	err = storage.AddDoc()
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(state.Data), 10)
-	err = state.AddDoc()
+	assert.Equal(t, len(storage.State.GetAllData()), 10)
+	err = storage.AddDoc()
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(state.Data), 11)
-	err = state.SetNames("kind", "metadata.name")
+	assert.Equal(t, len(storage.State.GetAllData()), 11)
+	err = storage.SetNames("kind", "metadata.name")
 	assert.Equal(t, err, nil)
 
-	for i := range state.Data {
-		err = state.Switch(i)
+	for i := range storage.State.GetAllData() {
+		err = storage.Switch(i)
 		assert.Equal(t, err, nil)
 
-		kind, err := state.GetPath("kind")
+		kind, err := storage.GetPath("kind")
 		if err != nil {
 			c0++
 			continue
 		}
 
-		name, err := state.GetPath("metadata.name")
+		name, err := storage.GetPath("metadata.name")
 		assert.Equal(t, err, nil)
 
 		sKind, ok := kind.(string)
@@ -127,11 +127,13 @@ func TestMultiDoc(t *testing.T) {
 		sName, ok := name.(string)
 		assert.Equal(t, ok, true)
 
-		assert.Equal(t, state.Lib[strings.ToLower(sKind)+"/"+strings.ToLower(sName)], i)
+		doc, ok := storage.State.LibIndex(strings.ToLower(sKind) + "/" + strings.ToLower(sName))
+		assert.Equal(t, ok, true)
+		assert.Equal(t, doc, i)
 	}
 	assert.Equal(t, c0, 3)
 
-	data := state.GetPathGlobal("metadata.name")
+	data := storage.GetPathGlobal("metadata.name")
 	assert.Equal(t, len(data), 8)
 
 	dataMap := map[int][]string{
@@ -145,8 +147,8 @@ func TestMultiDoc(t *testing.T) {
 		7: {"metadata.name"},
 	}
 
-	for i, j := range state.FindKeysGlobal("name") {
-		err = state.Switch(i)
+	for i, j := range storage.FindKeysGlobal("name") {
+		err = storage.Switch(i)
 		assert.Equal(t, err, nil)
 
 		assert.Equal(t, len(j), len(dataMap[i]))

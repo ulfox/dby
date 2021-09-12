@@ -27,19 +27,19 @@ func TestStorage(t *testing.T) {
 	path := ".test/db-storage.yaml"
 	assert.Equal(t, fileExists(path), false)
 
-	statefulEmpty, err := db.NewStorageFactory(path)
+	empty, err := db.NewStorageFactory(path)
 	assert.Equal(t, err, nil)
 
-	assert.Equal(t, len(statefulEmpty.Data), 1)
+	assert.Equal(t, len(empty.State.GetAllData()), 1)
 
 	assertData := db.NewConvertFactory()
-	assertData.Input(statefulEmpty.Data[statefulEmpty.AD])
+	assertData.Input(empty.State.GetData())
 
 	emptyMap, err := assertData.GetMap()
 	assert.Equal(t, err, nil)
 	assert.Equal(t, len(emptyMap), 0)
 
-	err = statefulEmpty.Upsert(
+	err = empty.Upsert(
 		"test.path",
 		map[string]string{
 			"key-1": "value-1",
@@ -48,13 +48,13 @@ func TestStorage(t *testing.T) {
 	)
 	assert.Equal(t, err, nil)
 
-	statefulEmpty = nil
+	empty = nil
 
-	statefulData, err := db.NewStorageFactory(path)
+	data, err := db.NewStorageFactory(path)
 	assert.Equal(t, err, nil)
 
-	assert.Equal(t, len(statefulData.Data), 1)
-	assertData.Input(statefulData.Data[statefulData.AD])
+	assert.Equal(t, len(data.State.GetAllData()), 1)
+	assertData.Input(data.State.GetData())
 
 	assertData.Key("test")
 	assert.Equal(t, assertData.GetError(), nil)
@@ -65,16 +65,16 @@ func TestStorage(t *testing.T) {
 	assert.Equal(t, err, nil)
 	assert.Equal(t, len(dataMap), 2)
 
-	statefulData.InMem(true)
-	statefulData.DeleteAll(true)
-	assert.Equal(t, len(statefulData.Data), 0)
+	data.InMem(true)
+	data.DeleteAll(true)
+	assert.Equal(t, len(data.State.GetAllData()), 0)
 
-	statefulData, dataMap = nil, nil
+	data, dataMap = nil, nil
 
-	statefulDataDue, err := db.NewStorageFactory(path)
+	dataDue, err := db.NewStorageFactory(path)
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(statefulDataDue.Data), 1)
-	assertData.Input(statefulDataDue.Data[statefulDataDue.AD])
+	assert.Equal(t, len(dataDue.State.GetAllData()), 1)
+	assertData.Input(dataDue.State.GetData())
 
 	assertData.Key("test")
 	assert.Equal(t, assertData.GetError(), nil)
@@ -85,17 +85,17 @@ func TestStorage(t *testing.T) {
 	assert.Equal(t, err, nil)
 	assert.Equal(t, len(dataMap), 2)
 
-	statelessData, err := db.NewStorageFactory()
+	memData, err := db.NewStorageFactory()
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(statelessData.Data), 1)
+	assert.Equal(t, len(memData.State.GetAllData()), 1)
 
-	assertData.Input(statelessData.Data[statelessData.AD])
+	assertData.Input(memData.State.GetData())
 
 	emptyMap, err = assertData.GetMap()
 	assert.Equal(t, err, nil)
 	assert.Equal(t, len(emptyMap), 0)
 
-	err = statelessData.Upsert(
+	err = memData.Upsert(
 		"test.path",
 		map[string]string{
 			"key-1": "value-1",
@@ -103,7 +103,7 @@ func TestStorage(t *testing.T) {
 		},
 	)
 	assert.Equal(t, err, nil)
-	assertData.Input(statelessData.Data[statelessData.AD])
+	assertData.Input(memData.State.GetData())
 
 	assertData.Key("test")
 	assert.Equal(t, assertData.GetError(), nil)

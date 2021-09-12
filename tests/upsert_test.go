@@ -16,10 +16,10 @@ func TestUpsert(t *testing.T) {
 	t.Parallel()
 
 	path := ".test/db-upsert.yaml"
-	state, err := db.NewStorageFactory(path)
+	storage, err := db.NewStorageFactory(path)
 	assert.Equal(t, err, nil)
 
-	err = state.Upsert(
+	err = storage.Upsert(
 		"test.path",
 		map[string]string{
 			"key-1": "value-1",
@@ -28,7 +28,7 @@ func TestUpsert(t *testing.T) {
 	)
 	assert.Equal(t, err, nil)
 
-	err = state.Upsert(
+	err = storage.Upsert(
 		"path-1.sub-path-1",
 		map[string][]string{
 			"sub-path-2": {"value-1", "value-2"},
@@ -37,7 +37,7 @@ func TestUpsert(t *testing.T) {
 	)
 	assert.Equal(t, err, nil)
 
-	err = state.Upsert(
+	err = storage.Upsert(
 		"path-2",
 		[]map[string][]string{
 			{
@@ -50,7 +50,7 @@ func TestUpsert(t *testing.T) {
 	)
 	assert.Equal(t, err, nil)
 
-	err = state.Upsert(
+	err = storage.Upsert(
 		"path-3",
 		[]map[string]string{
 			{
@@ -63,7 +63,7 @@ func TestUpsert(t *testing.T) {
 	)
 	assert.Equal(t, err, nil)
 
-	err = state.Upsert(
+	err = storage.Upsert(
 		"path-4",
 		map[string]int{
 			"sub-path-1": 0,
@@ -75,7 +75,8 @@ func TestUpsert(t *testing.T) {
 	f, err := ioutil.ReadFile(path)
 	assert.Equal(t, err, nil)
 
-	yaml.Unmarshal(f, &state.Data[state.AD])
+	v := storage.State.GetData()
+	yaml.Unmarshal(f, &v)
 
 	testUpsert := []struct {
 		Key   string
@@ -85,7 +86,7 @@ func TestUpsert(t *testing.T) {
 		{"key-2", "value-2"},
 	}
 
-	data, ok := state.Data[state.AD].(map[interface{}]interface{})
+	data, ok := storage.State.GetData().(map[interface{}]interface{})
 	assert.Equal(t, ok, true)
 	for _, testCase := range testUpsert {
 

@@ -11,10 +11,10 @@ import (
 func TestGetFirst(t *testing.T) {
 	t.Parallel()
 
-	state, err := db.NewStorageFactory()
+	storage, err := db.NewStorageFactory()
 	assert.Equal(t, err, nil)
 
-	err = state.Upsert(
+	err = storage.Upsert(
 		"test.path",
 		map[string]string{
 			"key-1": "value-1",
@@ -24,15 +24,15 @@ func TestGetFirst(t *testing.T) {
 
 	assert.Equal(t, err, nil)
 
-	val, err := state.GetFirst("key-1")
+	val, err := storage.GetFirst("key-1")
 	assert.Equal(t, err, nil)
 	assert.Equal(t, val, "value-1")
 
-	val, err = state.GetFirst("key-2")
+	val, err = storage.GetFirst("key-2")
 	assert.Equal(t, err, nil)
 	assert.Equal(t, val, "value-2")
 
-	err = state.Upsert(
+	err = storage.Upsert(
 		"path-1",
 		map[string][]string{
 			"key-3": {"value-3"},
@@ -42,14 +42,14 @@ func TestGetFirst(t *testing.T) {
 
 	assert.Equal(t, err, nil)
 
-	val, err = state.GetFirst("key-3")
+	val, err = storage.GetFirst("key-3")
 	assert.Equal(t, err, nil)
 	assert.Equal(t, val, []interface{}{"value-3"})
 
-	val, err = state.GetFirst("key-4")
+	val, err = storage.GetFirst("key-4")
 	assert.Equal(t, err, nil)
 	assert.Equal(t, val, []interface{}{"value-4"})
-	err = state.Upsert(
+	err = storage.Upsert(
 		"key-3",
 		map[string][]string{
 			"key-5": {"value-5"},
@@ -59,27 +59,27 @@ func TestGetFirst(t *testing.T) {
 
 	assert.Equal(t, err, nil)
 
-	val, err = state.GetFirst("key-3")
+	val, err = storage.GetFirst("key-3")
 	assert.Equal(t, err, nil)
 	assert.Equal(t, val.(map[interface{}]interface{})["key-5"].([]interface{})[0], "value-5")
 	assert.Equal(t, val.(map[interface{}]interface{})["key-6"].([]interface{})[0], "value-6")
 
-	err = state.Upsert(
+	err = storage.Upsert(
 		"test",
 		map[string]string{},
 	)
 	assert.Equal(t, err, nil)
-	err = state.Upsert(
+	err = storage.Upsert(
 		"key-3",
 		map[string][]string{},
 	)
 	assert.Equal(t, err, nil)
-	err = state.Upsert(
+	err = storage.Upsert(
 		"path-1",
 		map[string][]string{},
 	)
 	assert.Equal(t, err, nil)
-	err = state.Upsert(
+	err = storage.Upsert(
 		"to.array-10",
 		map[string][]map[string]int{
 			"key-10": {
@@ -91,7 +91,7 @@ func TestGetFirst(t *testing.T) {
 	)
 	assert.Equal(t, err, nil)
 
-	val, err = state.GetFirst("key-30")
+	val, err = storage.GetFirst("key-30")
 	assert.Equal(t, err, nil)
 	assert.Equal(t, val, 30)
 }

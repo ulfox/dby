@@ -13,11 +13,11 @@ func TestGeneric(t *testing.T) {
 	t.Parallel()
 
 	path := ".test/db-generic.yaml"
-	state, err := db.NewStorageFactory(path)
+	storage, err := db.NewStorageFactory(path)
 	assert.Equal(t, err, nil)
-	state.InMem(true)
+	storage.InMem(true)
 
-	err = state.Upsert(
+	err = storage.Upsert(
 		".someKey",
 		map[string]string{
 			"key-1": "value-1",
@@ -27,7 +27,7 @@ func TestGeneric(t *testing.T) {
 
 	assert.NotEqual(t, err, nil)
 
-	err = state.Upsert(
+	err = storage.Upsert(
 		".",
 		map[string]string{
 			"key-1": "value-1",
@@ -37,14 +37,14 @@ func TestGeneric(t *testing.T) {
 
 	assert.NotEqual(t, err, nil)
 
-	err = state.Upsert(
+	err = storage.Upsert(
 		"k01",
 		nil,
 	)
 
 	assert.Equal(t, err, nil)
 
-	err = state.Upsert(
+	err = storage.Upsert(
 		"k",
 		[]map[string][]map[string]string{
 			{
@@ -67,12 +67,12 @@ func TestGeneric(t *testing.T) {
 	)
 	assert.Equal(t, err, nil)
 
-	val, err := state.GetFirst("1")
+	val, err := storage.GetFirst("1")
 	assert.Equal(t, err, nil)
 	assert.Equal(t, val, "v03")
 	assertData := db.NewConvertFactory()
 
-	val, err = state.GetFirst("03")
+	val, err = storage.GetFirst("03")
 	assert.Equal(t, err, nil)
 
 	assertData.Input(val)
@@ -81,11 +81,11 @@ func TestGeneric(t *testing.T) {
 	assert.Equal(t, err, nil)
 	assert.Equal(t, s, "v05")
 
-	keys, err := state.Get("1")
+	keys, err := storage.Get("1")
 	assert.Equal(t, err, nil)
 	assert.Equal(t, len(keys), 1)
 
-	err = state.Upsert(
+	err = storage.Upsert(
 		"i",
 		[]int{
 			1,
@@ -95,7 +95,7 @@ func TestGeneric(t *testing.T) {
 	)
 	assert.Equal(t, err, nil)
 
-	val, err = state.GetFirst("i")
+	val, err = storage.GetFirst("i")
 	assert.Equal(t, err, nil)
 	assertData.Input(val)
 
