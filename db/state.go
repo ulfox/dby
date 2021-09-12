@@ -3,8 +3,6 @@ package db
 import (
 	"fmt"
 	"strings"
-
-	e "github.com/ulfox/dby/errors"
 )
 
 const (
@@ -167,7 +165,7 @@ func (c *state) DeleteData(i int) error {
 	}
 
 	if err := c.RemoveDocName(i); err != nil {
-		return e.WrapErr(err)
+		return wrapErr(err)
 	}
 
 	c.data[i] = nil
