@@ -38,12 +38,12 @@ func (a *AssertData) Clear() {
 
 // GetError returns the any error set to AssertData
 func (a *AssertData) GetError() error {
-	return a.cache.GetError()
+	return a.cache.E()
 }
 
 func (a *AssertData) setErr(e ...error) *AssertData {
 	if len(e) > 0 {
-		a.cache.E = e[0]
+		a.cache.E(e[0])
 	}
 	return a
 }
@@ -51,7 +51,7 @@ func (a *AssertData) setErr(e ...error) *AssertData {
 // Input sets a data source that can be used for assertion
 func (a *AssertData) Input(o interface{}) *AssertData {
 	a.Clear()
-	a.cache.V1 = o
+	a.cache.V1(o)
 	return a
 }
 
@@ -61,7 +61,7 @@ func (a *AssertData) GetString() (string, error) {
 		return "", a.GetError()
 	}
 
-	s, isString := a.cache.V1.(string)
+	s, isString := a.cache.V1().(string)
 	if !isString {
 		a.setErr(wrapErr(notAType, "string"))
 		return "", a.GetError()
@@ -76,7 +76,7 @@ func (a *AssertData) GetInt() (int, error) {
 		return 0, a.GetError()
 	}
 
-	i, isInt := a.cache.V1.(int)
+	i, isInt := a.cache.V1().(int)
 	if !isInt {
 		a.setErr(wrapErr(notAType, "int"))
 		return 0, a.GetError()
@@ -91,12 +91,12 @@ func (a *AssertData) GetMap() (map[string]string, error) {
 		return nil, a.GetError()
 	}
 
-	a.cache.B, a.cache.E = yaml.Marshal(a.cache.V1)
+	a.cache.E(a.cache.BE(yaml.Marshal(a.cache.V1())))
 	if a.GetError() != nil {
 		return nil, a.GetError()
 	}
 
-	a.cache.E = yaml.Unmarshal(a.cache.B, &a.d0)
+	a.cache.E(yaml.Unmarshal(a.cache.B(), &a.d0))
 	if a.GetError() != nil {
 		return nil, a.GetError()
 	}
@@ -109,18 +109,18 @@ func (a *AssertData) GetArray() ([]string, error) {
 		return nil, a.GetError()
 	}
 
-	_, isArray := a.cache.V1.([]interface{})
+	_, isArray := a.cache.V1().([]interface{})
 	if !isArray {
 		a.setErr(wrapErr(notArrayObj))
 		return nil, a.GetError()
 	}
 
-	a.cache.B, a.cache.E = yaml.Marshal(a.cache.V1)
+	a.cache.E(a.cache.BE(yaml.Marshal(a.cache.V1())))
 	if a.GetError() != nil {
 		return nil, a.GetError()
 	}
 
-	a.cache.E = yaml.Unmarshal(a.cache.B, &a.s1)
+	a.cache.E(yaml.Unmarshal(a.cache.B(), &a.s1))
 	if a.GetError() != nil {
 		return nil, a.GetError()
 	}
@@ -135,12 +135,12 @@ func (a *AssertData) Key(k string) *AssertData {
 		return a
 	}
 
-	_, isMap := a.cache.V1.(map[interface{}]interface{})
+	_, isMap := a.cache.V1().(map[interface{}]interface{})
 	if !isMap {
 		return a.setErr(wrapErr(notAMap))
 	}
 
-	a.cache.V1 = a.cache.V1.(map[interface{}]interface{})[k]
+	a.cache.V1(a.cache.V1().(map[interface{}]interface{})[k])
 
 	return a
 }
@@ -151,11 +151,11 @@ func (a *AssertData) Index(i int) *AssertData {
 		return a
 	}
 
-	_, isArray := a.cache.V1.([]interface{})
+	_, isArray := a.cache.V1().([]interface{})
 	if !isArray {
 		return a.setErr(wrapErr(notArrayObj))
 	}
-	a.cache.V1 = a.cache.V1.([]interface{})[i]
+	a.cache.V1(a.cache.V1().([]interface{})[i])
 
 	return a
 }

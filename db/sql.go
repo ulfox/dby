@@ -218,20 +218,20 @@ func (s *SQL) get(k string, o interface{}) ([]string, error) {
 	var key string
 
 	s.Clear()
-	s.Cache.V1, err = copyMap(o)
+	err = s.Cache.V1E(copyMap(o))
 	if err != nil {
 		return nil, wrapErr(err)
 	}
 
 	for {
-		if _, found := s.getObj(k, s.Cache.V1); !found {
+		if _, found := s.getObj(k, s.Cache.V1()); !found {
 			break
 		}
 
 		key = strings.Join(s.Cache.GetKeys(), ".")
 		s.Query.AddKey(key)
 
-		if err := s.delPath(key, s.Cache.V1); err != nil {
+		if err := s.delPath(key, s.Cache.V1()); err != nil {
 			return s.Query.GetKeys(), wrapErr(err)
 		}
 		s.Cache.DropKeys()
@@ -257,20 +257,20 @@ func (s *SQL) getFirst(k string, o interface{}) (interface{}, error) {
 		return nil, wrapErr(err)
 	}
 
-	s.Cache.C1 = len(keySlice)
+	s.Cache.C1(len(keySlice))
 	if len(keys) == 1 {
 		path, err := s.getPath(keySlice, o)
 		return path, wrapErr(err)
 	}
 
 	for i, key := range keys[1:] {
-		if len(strings.Split(key, ".")) < s.Cache.C1 {
-			s.Cache.C1 = len(strings.Split(key, "."))
-			s.Cache.C2 = i + 1
+		if len(strings.Split(key, ".")) < s.Cache.C1() {
+			s.Cache.C1(len(strings.Split(key, ".")))
+			s.Cache.C2(i + 1)
 		}
 	}
 
-	path, err := s.getPath(strings.Split(keys[s.Cache.C2], "."), o)
+	path, err := s.getPath(strings.Split(keys[s.Cache.C2()], "."), o)
 	return path, wrapErr(err)
 }
 
