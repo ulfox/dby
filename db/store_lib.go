@@ -213,43 +213,46 @@ func (s *Storage) ImportDocs(path string, o ...bool) error {
 		return wrapErr(err)
 	}
 
-	var dataArray []interface{}
 	var counter int
 	var data interface{}
+	s.State.UnsetBufferArray()
 
-	if len(o) > 0 {
-		issueWarning(deprecatedFeature, "ImportDocs(string, bool)", "Storage.DeleteAll(true).ImportDocs(path)")
-		if o[0] {
-			s.State.UnsetDataArray()
-		}
-	}
-
-	data = nil
 	dec := yaml.NewDecoder(bytes.NewReader(impf))
 	for {
-		dataArray = append(dataArray, data)
-		err := dec.Decode(&dataArray[counter])
+		err = dec.Decode(&data)
 		if err == nil {
-			counter++
+			s.State.PushBuffer(data)
 			data = nil
+
+			counter++
 			continue
 		}
 
 		if err.Error() == "EOF" {
 			break
 		}
+		s.State.UnsetBufferArray()
 		return wrapErr(err)
 	}
 
-	for _, j := range dataArray {
+	if len(o) > 0 {
+		issueWarning(deprecatedFeature, "ImportDocs(string, bool)", "Storage.DeleteAll(true).ImportDocs(path)")
+		if o[0] {
+			s.State.UnsetDataArray()
+			s.State.ClearLib()
+		}
+	}
+
+	for _, j := range s.State.GetAllBuffer() {
 		if j == nil {
 			continue
 		}
-		if len(j.(map[interface{}]interface{})) == 0 {
+		if len((*j).(map[interface{}]interface{})) == 0 {
 			continue
 		}
-		s.State.PushData(j)
+		s.State.PushData(*j)
 	}
+	s.State.UnsetBufferArray()
 	return s.stateReload()
 }
 
@@ -270,14 +273,14 @@ func (s *Storage) Read() error {
 	s.Lock()
 	defer s.Unlock()
 
-	s.State.DeleteAllData()
+	s.State.UnsetBufferArray()
 
 	var data interface{}
 	dec := yaml.NewDecoder(bytes.NewReader(f))
 	for {
 		err := dec.Decode(&data)
 		if err == nil {
-			s.State.PushData(data)
+			s.State.PushBuffer(data)
 			data = nil
 			continue
 		}
@@ -285,9 +288,19 @@ func (s *Storage) Read() error {
 		if err.Error() == "EOF" {
 			break
 		}
+		s.State.UnsetBufferArray()
 		return wrapErr(err)
 	}
 
+	s.State.UnsetDataArray()
+
+	for _, j := range s.State.GetAllBuffer() {
+		if j == nil {
+			continue
+		}
+		s.State.PushData(*j)
+	}
+	s.State.UnsetBufferArray()
 	return nil
 }
 

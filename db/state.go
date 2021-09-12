@@ -13,16 +13,17 @@ const (
 
 // state struct used by dby storage
 type state struct {
-	data, buffer []interface{}
-	lib          map[string]int
-	ad           int
+	data   []interface{}
+	buffer []*interface{}
+	lib    map[string]int
+	ad     int
 }
 
 // newStateFactory for creating a new v3 State
 func newStateFactory() *state {
 	s := state{
 		data:   make([]interface{}, 0),
-		buffer: make([]interface{}, 0),
+		buffer: make([]*interface{}, 0),
 		lib:    make(map[string]int),
 	}
 	return &s
@@ -33,7 +34,7 @@ func (c *state) Clear() {
 	c.data, c.buffer, c.lib = nil, nil, nil
 
 	c.data = make([]interface{}, 0)
-	c.buffer = make([]interface{}, 0)
+	c.buffer = make([]*interface{}, 0)
 	c.lib = make(map[string]int)
 }
 
@@ -58,7 +59,7 @@ func (c *state) PushData(d interface{}) {
 
 // PushBuffer for appending data to the buffer array
 func (c *state) PushBuffer(d interface{}) {
-	c.buffer = append(c.buffer, d)
+	c.buffer = append(c.buffer, &d)
 }
 
 // GetAllData returns the data array
@@ -67,7 +68,7 @@ func (c *state) GetAllData() []interface{} {
 }
 
 // GetAllBuffer returns the buffer array
-func (c *state) GetAllBuffer() []interface{} {
+func (c *state) GetAllBuffer() []*interface{} {
 	return c.buffer
 }
 
@@ -100,11 +101,21 @@ func (c *state) SetDataFromIndex(v interface{}, i int) error {
 }
 
 // GetBufferFromIndex returns the i'th element from the buffer array
-func (c *state) GetBufferFromIndex(i int) (interface{}, error) {
-	if err := c.IndexInRange(i); err != nil {
-		return nil, wrapErr(err)
+func (c *state) GetBufferFromIndex(i int) (*interface{}, error) {
+	if len(c.buffer)-1 >= i {
+		return c.buffer[i], nil
 	}
-	return c.data[i], nil
+	return nil, fmt.Errorf(ire)
+}
+
+// SetDataFromIndex sets to input value the i'th element from the data array
+func (c *state) SetBufferFromIndex(v interface{}, i int) error {
+	if len(c.buffer)-1 >= i {
+		c.buffer[i] = &v
+		return nil
+	}
+	return fmt.Errorf(ire)
+
 }
 
 // IndexInRange check if index is within data array range
@@ -173,10 +184,10 @@ func (c *state) DeleteData(i int) error {
 	return nil
 }
 
-// CopyBufferToData for copying buffer array over data array
-func (c *state) CopyBufferToData() {
-	copy(c.data, c.buffer)
-}
+// // CopyBufferToData for copying buffer array over data array
+// func (c *state) CopyBufferToData() {
+// 	copy(c.data, c.buffer)
+// }
 
 // UnsetDataArray for deleting all data. This sets data = nil
 func (c *state) UnsetDataArray() {
@@ -197,7 +208,7 @@ func (c *state) UnsetBufferArray() {
 // DeleteBuffer deletes the data from the buffer array
 func (c *state) DeleteBuffer() {
 	c.UnsetBufferArray()
-	c.buffer = append(c.buffer, 0)
+	c.buffer = make([]*interface{}, 0)
 }
 
 // ClearLib removes all keys from the lib map
