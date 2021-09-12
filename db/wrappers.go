@@ -116,7 +116,7 @@ func (s *Storage) Get(k string) ([]string, error) {
 	return obj, nil
 }
 
-// Get is a SQL wrapper that finds all the paths for a given
+// FindKeys is a SQL wrapper that finds all the paths for a given
 // e.g. ["key-1.test", "key-2.key-3.test"] will be returned
 func (s *Storage) FindKeys(k string) ([]string, error) {
 	obj, err := s.SQL.get(k, s.GetData())

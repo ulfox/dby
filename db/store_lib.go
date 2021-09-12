@@ -58,6 +58,8 @@ func NewStorageFactory(p ...interface{}) (*Storage, error) {
 	return state, nil
 }
 
+// Close method will do a write if InMem is false
+// and then clear cache and buffers
 func (s *Storage) Close() error {
 	if !s.mem {
 		err := s.Write()
