@@ -154,20 +154,24 @@ func (s *SQL) getPath(k []string, o interface{}) (interface{}, error) {
 	return nil, wrapErr(keyDoesNotExist, k[0])
 }
 
-func (s *SQL) deleteArrayItem(k string, o interface{}) bool {
+func (s *SQL) deleteArrayItem(k string, o interface{}) error {
 	if o == nil {
-		return false
+		return wrapErr(notArrayObj)
 	}
-	for ki, kn := range o.([]interface{}) {
-		if kn.(map[interface{}]interface{})[k] != nil {
-			o.([]interface{})[ki] = emptyMap()
-			return true
-		}
+
+	i, err := s.getIndex(k)
+	if err != nil {
+		return wrapErr(err)
 	}
-	return false
+
+	o.([]interface{})[i] = o.([]interface{})[len(o.([]interface{}))-1]
+	o.([]interface{})[len(o.([]interface{}))-1] = ""
+	o = o.([]interface{})[:len(o.([]interface{}))-1]
+
+	return nil
 }
 
-func (s *SQL) deleteItem(k string, o interface{}) bool {
+func (s *SQL) deleteItem(k string, o interface{}) error {
 	_, ok := o.(map[interface{}]interface{})
 	if !ok {
 		return s.deleteArrayItem(k, o)
@@ -176,10 +180,10 @@ func (s *SQL) deleteItem(k string, o interface{}) bool {
 	for kn := range o.(map[interface{}]interface{}) {
 		if kn.(string) == k {
 			delete(o.(map[interface{}]interface{}), kn)
-			return true
+			return nil
 		}
 	}
-	return false
+	return wrapErr(keyDoesNotExist, k)
 }
 
 func (s *SQL) delPath(k string, o interface{}) error {
@@ -193,7 +197,7 @@ func (s *SQL) delPath(k string, o interface{}) error {
 	}
 
 	if len(keys) == 1 {
-		if !s.deleteItem(keys[0], o) {
+		if err := s.deleteItem(keys[0], o); err != nil {
 			return wrapErr(keyDoesNotExist, k)
 		}
 		return nil
@@ -206,7 +210,7 @@ func (s *SQL) delPath(k string, o interface{}) error {
 	}
 
 	s.Cache.DropKeys()
-	if !s.deleteItem(keys[len(keys)-1], obj) {
+	if err := s.deleteItem(keys[len(keys)-1], obj); err != nil {
 		return wrapErr(keyDoesNotExist, k)
 	}
 

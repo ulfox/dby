@@ -39,6 +39,20 @@ func TestDelete(t *testing.T) {
 	err = storage.Delete("test.path.key-12")
 	assert.NotEqual(t, err, nil)
 
+	err = storage.Upsert(
+		"key-33",
+		map[string][]string{
+			"key-5": {"value-5"},
+			"key-6": {"value-6"},
+		},
+	)
+
+	assert.Equal(t, err, nil)
+	err = storage.Delete("key-33.key-5")
+	assert.Equal(t, err, nil)
+	err = storage.Delete("key-33.key-6.[0]")
+	assert.Equal(t, err, nil)
+
 	err = os.Remove(path)
 	assert.Equal(t, err, nil)
 }
