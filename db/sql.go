@@ -33,23 +33,19 @@ func (s *SQL) Clear() *SQL {
 	return s
 }
 
-func (s *SQL) getObj(k string, o interface{}) (interface{}, bool) {
-	// The object is either a map or an array.
-	// If isMap returns false then check the array
-
-	obj, isMap := o.(map[interface{}]interface{})
+func (s *SQL) getObj(k string, o *interface{}) (*interface{}, bool) {
+	_, isMap := (*o).(map[interface{}]interface{})
 	if !isMap {
 		return s.getArrayObject(k, o)
 	}
 
-	for thisKey, thisObj := range obj {
+	for thisKey, thisObj := range (*o).(map[interface{}]interface{}) {
 		s.Cache.AddKey(thisKey.(string))
 		if thisKey == k {
-			return thisObj, true
+			return &thisObj, true
 		}
 
-		// Call self again
-		if objFinal, found := s.getObj(k, thisObj); found {
+		if objFinal, found := s.getObj(k, &thisObj); found {
 			return objFinal, found
 		}
 		s.Cache.DropLastKey()
@@ -58,22 +54,18 @@ func (s *SQL) getObj(k string, o interface{}) (interface{}, bool) {
 	return nil, false
 }
 
-func (s *SQL) getArrayObject(k string, o interface{}) (interface{}, bool) {
-	// This is always called after object has been
-	// checked if it is a map. If isArray is false then
-	// the object is neither and we should return false
-	// since we do not support the required operation
+func (s *SQL) getArrayObject(k string, o *interface{}) (*interface{}, bool) {
 	if o == nil {
 		return nil, false
 	}
-	arrayObj, isArray := o.([]interface{})
+	_, isArray := (*o).([]interface{})
 	if !isArray {
 		return nil, false
 	}
 
-	for i, thisArrayObj := range arrayObj {
+	for i, thisArrayObj := range (*o).([]interface{}) {
 		s.Cache.AddKey("[" + strconv.Itoa(i) + "]")
-		arrayObjFinal, found := s.getObj(k, thisArrayObj)
+		arrayObjFinal, found := s.getObj(k, &thisArrayObj)
 		if found {
 			return arrayObjFinal, found
 		}
@@ -96,38 +88,40 @@ func (s *SQL) getIndex(k string) (int, error) {
 	return intVar, nil
 }
 
-func (s *SQL) getFromIndex(k []string, o interface{}) (interface{}, error) {
-	if getObjectType(o) != arrayObj {
+func (s *SQL) getFromIndex(k []string, o *interface{}) (*interface{}, error) {
+	_, isArray := (*o).([]interface{})
+	if !isArray {
 		return nil, wrapErr(notArrayObj)
 	}
+	v := (*o).([]interface{})
 
 	i, err := s.getIndex(k[0])
 	if err != nil {
 		return nil, wrapErr(err)
 	}
 
-	if i > len(o.([]interface{}))-1 {
+	if i > len((*o).([]interface{}))-1 {
 		return nil, wrapErr(
 			arrayOutOfRange,
 			strconv.Itoa(i),
-			strconv.Itoa(len(o.([]interface{}))-1),
+			strconv.Itoa(len((*o).([]interface{}))-1),
 		)
 	}
 
 	if len(k) > 1 {
-		return s.getPath(k[1:], o.([]interface{})[i])
+		return s.getPath(k[1:], &v[i])
 	}
 
-	return o.([]interface{})[i], nil
+	return &v[i], nil
 }
 
-func (s *SQL) getPath(k []string, o interface{}) (interface{}, error) {
+func (s *SQL) getPath(k []string, o *interface{}) (*interface{}, error) {
 	if err := checkKeyPath(k); err != nil {
 		return nil, wrapErr(err)
 	}
 
-	obj, err := interfaceToMap(o)
-	if err != nil {
+	_, ok := (*o).(map[interface{}]interface{})
+	if !ok {
 		return s.getFromIndex(k, o)
 	}
 
@@ -135,16 +129,16 @@ func (s *SQL) getPath(k []string, o interface{}) (interface{}, error) {
 		return nil, wrapErr(keyDoesNotExist, k[0])
 	}
 
-	for thisKey, thisObj := range obj {
+	for thisKey, thisObj := range (*o).(map[interface{}]interface{}) {
 		if thisKey != k[0] {
 			continue
 		}
 		s.Cache.AddKey(k[0])
 		if len(k) == 1 {
-			return thisObj, nil
+			return &thisObj, nil
 		}
 
-		objFinal, err := s.getPath(k[1:], thisObj)
+		objFinal, err := s.getPath(k[1:], &thisObj)
 		if err != nil {
 			return nil, wrapErr(err)
 		}
@@ -154,7 +148,7 @@ func (s *SQL) getPath(k []string, o interface{}) (interface{}, error) {
 	return nil, wrapErr(keyDoesNotExist, k[0])
 }
 
-func (s *SQL) deleteArrayItem(k string, o interface{}) error {
+func (s *SQL) deleteArrayItem(k string, o *interface{}) error {
 	if o == nil {
 		return wrapErr(notArrayObj)
 	}
@@ -164,29 +158,29 @@ func (s *SQL) deleteArrayItem(k string, o interface{}) error {
 		return wrapErr(err)
 	}
 
-	o.([]interface{})[i] = o.([]interface{})[len(o.([]interface{}))-1]
-	o.([]interface{})[len(o.([]interface{}))-1] = ""
-	o = o.([]interface{})[:len(o.([]interface{}))-1]
+	(*o).([]interface{})[i] = (*o).([]interface{})[len((*o).([]interface{}))-1]
+	(*o).([]interface{})[len((*o).([]interface{}))-1] = ""
+	*o = (*o).([]interface{})[:len((*o).([]interface{}))-1]
 
 	return nil
 }
 
-func (s *SQL) deleteItem(k string, o interface{}) error {
-	_, ok := o.(map[interface{}]interface{})
+func (s *SQL) deleteItem(k string, o *interface{}) error {
+	_, ok := (*o).(map[interface{}]interface{})
 	if !ok {
 		return s.deleteArrayItem(k, o)
 	}
 
-	for kn := range o.(map[interface{}]interface{}) {
+	for kn := range (*o).(map[interface{}]interface{}) {
 		if kn.(string) == k {
-			delete(o.(map[interface{}]interface{}), kn)
+			delete((*o).(map[interface{}]interface{}), kn)
 			return nil
 		}
 	}
 	return wrapErr(keyDoesNotExist, k)
 }
 
-func (s *SQL) delPath(k string, o interface{}) error {
+func (s *SQL) delPath(k string, o *interface{}) error {
 	keys := strings.Split(k, ".")
 	if err := checkKeyPath(keys); err != nil {
 		return wrapErr(err)
@@ -217,25 +211,26 @@ func (s *SQL) delPath(k string, o interface{}) error {
 	return nil
 }
 
-func (s *SQL) get(k string, o interface{}) ([]string, error) {
+func (s *SQL) findKeys(k string, o *interface{}) ([]string, error) {
 	var err error
 	var key string
 
 	s.Clear()
-	err = s.V1E(copyMap(o))
+	err = s.V1E(copyMap(*o))
 	if err != nil {
 		return nil, wrapErr(err)
 	}
 
 	for {
-		if _, found := s.getObj(k, s.V1()); !found {
+		obj := s.V1()
+		if _, found := s.getObj(k, &obj); !found {
 			break
 		}
 
 		key = strings.Join(s.Cache.GetKeys(), ".")
 		s.Query.AddKey(key)
 
-		if err := s.delPath(key, s.V1()); err != nil {
+		if err := s.delPath(key, &obj); err != nil {
 			return s.Query.GetKeys(), wrapErr(err)
 		}
 		s.Cache.DropKeys()
@@ -244,10 +239,10 @@ func (s *SQL) get(k string, o interface{}) ([]string, error) {
 	return s.Query.GetKeys(), nil
 }
 
-func (s *SQL) getFirst(k string, o interface{}) (interface{}, error) {
+func (s *SQL) getFirst(k string, o *interface{}) (*interface{}, error) {
 	s.Clear()
 
-	keys, err := s.get(k, o)
+	keys, err := s.findKeys(k, o)
 	if err != nil {
 		return nil, wrapErr(err)
 	}

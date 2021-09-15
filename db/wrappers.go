@@ -73,12 +73,13 @@ func (s *Storage) UpdateGlobal(k string, i interface{}) error {
 // yaml hierarchy. If two keys are on the same level but under
 // different paths, then the selection will be random
 func (s *Storage) GetFirst(k string) (interface{}, error) {
-	obj, err := s.SQL.getFirst(k, s.GetData())
+	dat := s.GetData()
+	obj, err := s.SQL.getFirst(k, &dat)
 	if err != nil {
 		return nil, wrapErr(err)
 	}
 
-	return obj, nil
+	return *obj, nil
 }
 
 // GetFirstGlobal does the same as GetFirst but for all docs.
@@ -90,12 +91,13 @@ func (s *Storage) GetFirstGlobal(k string) map[int]interface{} {
 	c := s.GetAD()
 	for j := range s.GetAllData() {
 		s.SetAD(j)
+		dat := s.GetData()
 
-		obj, err := s.SQL.getFirst(k, s.GetData())
+		obj, err := s.SQL.getFirst(k, &dat)
 		if err != nil {
 			continue
 		}
-		found[j] = obj
+		found[j] = *obj
 	}
 
 	s.SetAD(c)
@@ -108,7 +110,9 @@ func (s *Storage) GetFirstGlobal(k string) map[int]interface{} {
 // For now we keep both for compatibility
 func (s *Storage) Get(k string) ([]string, error) {
 	issueWarning(deprecatedFeature, "Get()", "FindKeys()")
-	obj, err := s.SQL.get(k, s.GetData())
+	dat := s.GetData()
+
+	obj, err := s.SQL.findKeys(k, &dat)
 	if err != nil {
 		return nil, wrapErr(err)
 	}
@@ -119,7 +123,8 @@ func (s *Storage) Get(k string) ([]string, error) {
 // FindKeys is a SQL wrapper that finds all the paths for a given
 // e.g. ["key-1.test", "key-2.key-3.test"] will be returned
 func (s *Storage) FindKeys(k string) ([]string, error) {
-	obj, err := s.SQL.get(k, s.GetData())
+	dat := s.GetData()
+	obj, err := s.SQL.findKeys(k, &dat)
 	if err != nil {
 		return nil, wrapErr(err)
 	}
@@ -136,8 +141,9 @@ func (s *Storage) FindKeysGlobal(k string) map[int][]string {
 	c := s.GetAD()
 	for j := range s.GetAllData() {
 		s.SetAD(j)
+		dat := s.GetData()
 
-		obj, err := s.SQL.get(k, s.GetData())
+		obj, err := s.SQL.findKeys(k, &dat)
 		if err != nil || len(obj) == 0 {
 			continue
 		}
@@ -158,12 +164,13 @@ func (s *Storage) FindKeysGlobal(k string) map[int][]string {
 //
 func (s *Storage) GetPath(k string) (interface{}, error) {
 	keys := strings.Split(k, ".")
-	obj, err := s.SQL.getPath(keys, s.GetData())
+	dat := s.GetData()
+	obj, err := s.SQL.getPath(keys, &dat)
 	if err != nil {
 		return nil, wrapErr(err)
 	}
 
-	return obj, nil
+	return *obj, nil
 }
 
 // GetPathGlobal does the same as GetPath but globally for all
@@ -175,12 +182,12 @@ func (s *Storage) GetPathGlobal(k string) map[int]interface{} {
 	c := s.GetAD()
 	for j := range s.GetAllData() {
 		s.SetAD(j)
-
-		obj, err := s.SQL.getPath(keys, s.GetData())
+		dat := s.GetData()
+		obj, err := s.SQL.getPath(keys, &dat)
 		if err != nil {
 			continue
 		}
-		found[j] = obj
+		found[j] = *obj
 	}
 
 	s.SetAD(c)
@@ -193,7 +200,9 @@ func (s *Storage) GetPathGlobal(k string) map[int]interface{} {
 // validate that the path exists, then it would export the value of
 // GetPath("key-1.key-2") and delete the object that matches key-3
 func (s *Storage) Delete(k string) error {
-	err := s.SQL.delPath(k, s.GetData())
+	dat := s.GetData()
+
+	err := s.SQL.delPath(k, &dat)
 	if err != nil {
 		return wrapErr(err)
 	}
@@ -204,7 +213,8 @@ func (s *Storage) Delete(k string) error {
 // DeleteGlobal is the same as Delete but will try to delete
 // the path on all docs (if found)
 func (s *Storage) DeleteGlobal(k string) error {
-	err := s.SQL.delPath(k, s.GetData())
+	dat := s.GetData()
+	err := s.SQL.delPath(k, &dat)
 	if err != nil {
 		return wrapErr(err)
 	}
