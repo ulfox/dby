@@ -1,8 +1,10 @@
+SHELL:=/bin/bash
+
 .PHONY: clean
 clean:
 	rm -rf tests/.test;
 
-.PHONY: clean
+.PHONY: lint
 lint:
 	@if ! command -v golint; then \
 		go get -u golang.org/x/lint/golint; \
@@ -12,5 +14,12 @@ lint:
 
 .PHONY: test
 test: clean
-	go test -v ./tests/
+	@set -e; \
+	hasErr=0; \
+	for i in {0..10}; do \
+		go test -v ./tests/; \
+		if [[ "$${?}" != 0 ]]; then \
+			hasErr=1; break; \
+		fi; \
+	done; \
 	rmdir ./tests/.test
