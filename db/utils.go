@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
-	"gopkg.in/yaml.v2"
 )
 
 func checkKeyPath(k []string) error {
@@ -15,27 +13,6 @@ func checkKeyPath(k []string) error {
 		}
 	}
 	return nil
-}
-
-func copyMap(o interface{}) (interface{}, error) {
-	obj, err := interfaceToMap(o)
-	if err != nil {
-		return nil, wrapErr(err)
-	}
-
-	var cache interface{}
-
-	data, err := yaml.Marshal(&obj)
-	if err != nil {
-		return nil, wrapErr(err)
-	}
-
-	err = yaml.Unmarshal(data, &cache)
-	if err != nil {
-		return nil, wrapErr(err)
-	}
-
-	return cache, nil
 }
 
 func emptyMap() map[interface{}]interface{} {

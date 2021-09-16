@@ -52,4 +52,4 @@ jobs:
         go get -v -t -d ./...
 
     - name: Test
-      run: make test
+      run: make testloop test_loop=100

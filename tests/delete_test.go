@@ -28,11 +28,14 @@ func TestDelete(t *testing.T) {
 	)
 
 	assert.Equal(t, err, nil)
+	val, err := storage.GetFirst("key-1")
+	assert.Equal(t, err, nil)
+	assert.Equal(t, val, "value-1")
 
 	err = storage.Delete("test.path.key-1")
 	assert.Equal(t, err, nil)
 
-	val, err := storage.GetPath("test.path.key-1")
+	val, err = storage.GetPath("test.path.key-1")
 	assert.NotEqual(t, err, nil)
 	assert.Equal(t, val, nil)
 
@@ -42,15 +45,19 @@ func TestDelete(t *testing.T) {
 	err = storage.Upsert(
 		"key-33",
 		map[string][]string{
-			"key-5": {"value-5"},
-			"key-6": {"value-6"},
+			"key-56": {"value-5", "value-6"},
+			"key-78": {"value-7", "value-8"},
 		},
 	)
 
 	assert.Equal(t, err, nil)
-	err = storage.Delete("key-33.key-5")
+	err = storage.Delete("key-33.key-56")
 	assert.Equal(t, err, nil)
-	err = storage.Delete("key-33.key-6.[0]")
+	val, err = storage.GetPath("key-33")
+	assert.Equal(t, err, nil)
+	assert.Equal(t, len(val.(map[interface{}]interface{})), 1)
+
+	err = storage.Delete("key-33.key-78.[0]")
 	assert.Equal(t, err, nil)
 
 	err = os.Remove(path)

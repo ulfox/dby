@@ -81,7 +81,7 @@ func TestGeneric(t *testing.T) {
 	assert.Equal(t, err, nil)
 	assert.Equal(t, s, "v05")
 
-	keys, err := storage.Get("1")
+	keys, err := storage.FindKeys("1")
 	assert.Equal(t, err, nil)
 	assert.Equal(t, len(keys), 1)
 

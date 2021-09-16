@@ -11,7 +11,7 @@ const (
 
 // state struct used by dby storage
 type state struct {
-	data   []interface{}
+	data   []*interface{}
 	buffer []*interface{}
 	lib    map[string]int
 	ad     int
@@ -20,7 +20,7 @@ type state struct {
 // newStateFactory for creating a new v3 State
 func newStateFactory() *state {
 	s := state{
-		data:   make([]interface{}, 0),
+		data:   make([]*interface{}, 0),
 		buffer: make([]*interface{}, 0),
 		lib:    make(map[string]int),
 	}
@@ -31,13 +31,13 @@ func newStateFactory() *state {
 func (c *state) Clear() {
 	c.data, c.buffer, c.lib = nil, nil, nil
 
-	c.data = make([]interface{}, 0)
+	c.data = make([]*interface{}, 0)
 	c.buffer = make([]*interface{}, 0)
 	c.lib = make(map[string]int)
 }
 
-// SetAD for setting new Active Document index
-func (c *state) SetAD(i int) error {
+// setAD for setting new Active Document index
+func (c *state) setAD(i int) error {
 	if err := c.IndexInRange(i); err != nil {
 		return wrapErr(err)
 	}
@@ -52,7 +52,7 @@ func (c *state) GetAD() int {
 
 // PushData for appending data to the data array
 func (c *state) PushData(d interface{}) {
-	c.data = append(c.data, d)
+	c.data = append(c.data, &d)
 }
 
 // PushBuffer for appending data to the buffer array
@@ -61,32 +61,40 @@ func (c *state) PushBuffer(d interface{}) {
 }
 
 // GetAllData returns the data array
-func (c *state) GetAllData() []interface{} {
+func (c *state) GetAllData() []*interface{} {
 	return c.data
 }
 
 // GetAllBuffer returns the buffer array
-func (c *state) GetAllBuffer() []*interface{} {
+func (c *state) getAllBuffer() []*interface{} {
 	return c.buffer
 }
 
-// GetData returns the data in the c.ad index from the data array
-func (c *state) GetData() interface{} {
+// getData returns the data in the c.ad index from the data array
+func (c *state) getData() *interface{} {
 	data, _ := c.GetDataFromIndex(c.GetAD())
 	return data
 }
 
 // GetDataFromIndex returns the i'th element from the data array
-func (c *state) GetDataFromIndex(i int) (interface{}, error) {
+func (c *state) GetDataFromIndex(i int) (*interface{}, error) {
 	if err := c.IndexInRange(i); err != nil {
 		return nil, wrapErr(err)
 	}
 	return c.data[i], nil
 }
 
+// GetBufferFromIndex returns the i'th element from the buffer array
+func (c *state) getBufferFromIndex(i int) (*interface{}, error) {
+	if len(c.buffer)-1 >= i {
+		return c.buffer[i], nil
+	}
+	return nil, fmt.Errorf(ire)
+}
+
 // SetData sets to input value the data in the c.ad index from the data array
 func (c *state) SetData(v interface{}) error {
-	return c.SetDataFromIndex(v, c.GetAD())
+	return c.SetDataFromIndex(&v, c.GetAD())
 }
 
 // SetDataFromIndex sets to input value the i'th element from the data array
@@ -94,20 +102,12 @@ func (c *state) SetDataFromIndex(v interface{}, i int) error {
 	if err := c.IndexInRange(i); err != nil {
 		return wrapErr(err)
 	}
-	c.data[i] = v
+	c.data[i] = &v
 	return nil
 }
 
-// GetBufferFromIndex returns the i'th element from the buffer array
-func (c *state) GetBufferFromIndex(i int) (*interface{}, error) {
-	if len(c.buffer)-1 >= i {
-		return c.buffer[i], nil
-	}
-	return nil, fmt.Errorf(ire)
-}
-
 // SetDataFromIndex sets to input value the i'th element from the data array
-func (c *state) SetBufferFromIndex(v interface{}, i int) error {
+func (c *state) setBufferFromIndex(v interface{}, i int) error {
 	if len(c.buffer)-1 >= i {
 		c.buffer[i] = &v
 		return nil
@@ -158,8 +158,8 @@ func (c *state) RemoveDocName(i int) error {
 	return nil
 }
 
-// DeleteData for deleting the i'th element from the data array
-func (c *state) DeleteData(i int) error {
+// DeleteDoc for deleting the i'th element from the data array
+func (c *state) DeleteDoc(i int) error {
 	if err := c.IndexInRange(i); err != nil {
 		return wrapErr(err)
 	}
@@ -168,6 +168,7 @@ func (c *state) DeleteData(i int) error {
 		return wrapErr(err)
 	}
 
+	// We keep the order
 	c.data[i] = nil
 	c.data = append(c.data[:i], c.data[i+1:]...)
 
@@ -195,17 +196,17 @@ func (c *state) UnsetDataArray() {
 // DeleteAllData calls PurgeAllData first and then creates a new empty array
 func (c *state) DeleteAllData() {
 	c.UnsetDataArray()
-	c.data = make([]interface{}, 0)
+	c.data = make([]*interface{}, 0)
 }
 
 // UnsetBufferArray This sets buffer = nil
-func (c *state) UnsetBufferArray() {
+func (c *state) unsetBufferArray() {
 	c.buffer = nil
 }
 
 // DeleteBuffer deletes the data from the buffer array
-func (c *state) DeleteBuffer() {
-	c.UnsetBufferArray()
+func (c *state) deleteBuffer() {
+	c.unsetBufferArray()
 	c.buffer = make([]*interface{}, 0)
 }
 

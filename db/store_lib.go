@@ -104,8 +104,14 @@ func (s *Storage) dbinit() error {
 	if err != nil {
 		return wrapErr(err)
 	}
+	s.SetAD(0)
 
 	return nil
+}
+
+// GetData returns the data in the c.ad index from the data array
+func (c *state) GetData() interface{} {
+	return *c.getData()
 }
 
 // SetNames can set names automatically to the documents
@@ -116,8 +122,12 @@ func (s *Storage) dbinit() error {
 // If a document has both paths, a name will be generated
 // and will be mapped with the document's index
 func (s *Storage) SetNames(f, l string) error {
+	c := s.GetAD()
 	for i := range s.GetAllData() {
-		s.SetAD(i)
+		err := s.SetAD(i)
+		if err != nil {
+			return wrapErr(err)
+		}
 		kind, err := s.GetPath(strings.ToLower(f))
 		if err != nil {
 			continue
@@ -136,7 +146,7 @@ func (s *Storage) SetNames(f, l string) error {
 		if !ok {
 			wrapErr(fieldNotString, strings.ToLower(l), name)
 		}
-		err = s.addDoc(
+		err = s.SetName(
 			fmt.Sprintf(
 				"%s/%s",
 				strings.ToLower(sKind),
@@ -148,27 +158,16 @@ func (s *Storage) SetNames(f, l string) error {
 			return wrapErr(err)
 		}
 	}
-
+	err := s.SetAD(c)
+	if err != nil {
+		return wrapErr(err)
+	}
 	return nil
 }
 
 // SetName adds a name for a document and maps with it the given doc index
 func (s *Storage) SetName(n string, i int) error {
-	err := s.Switch(i)
-	if err != nil {
-		return wrapErr(err)
-	}
-	err = s.addDoc(n, i)
-	if err != nil {
-		return wrapErr(err)
-	}
-
-	return nil
-}
-
-// DeleteDoc will the document with the given index
-func (s *Storage) DeleteDoc(i int) error {
-	err := s.DeleteData(i)
+	err := s.addDoc(n, i)
 	if err != nil {
 		return wrapErr(err)
 	}
@@ -185,11 +184,26 @@ func (s *Storage) Switch(i int) error {
 	return nil
 }
 
+// SetAD for setting new Active Document index
+func (s *Storage) SetAD(i int) error {
+	err := s.setAD(i)
+	if err != nil {
+		return wrapErr(err)
+	}
+	s.SQL.SetQIndex(i)
+
+	return nil
+}
+
 // AddDoc will add a new document to the stack and will switch
 // Active Document index to that document
 func (s *Storage) AddDoc() error {
 	s.PushData(emptyMap())
-	s.SetAD(len(s.GetAllData()) - 1)
+	err := s.SetAD(len(s.GetAllData()) - 1)
+	if err != nil {
+		return wrapErr(err)
+	}
+
 	return s.stateReload()
 }
 
@@ -208,7 +222,10 @@ func (s *Storage) SwitchDoc(n string) error {
 	if !exists {
 		return wrapErr(docNotExists, strings.ToLower(n))
 	}
-	s.SetAD(i)
+	err := s.SetAD(i)
+	if err != nil {
+		return wrapErr(err)
+	}
 	return nil
 }
 
@@ -217,6 +234,7 @@ func (s *Storage) DeleteAll(delete bool) *Storage {
 	if delete {
 		s.DeleteAllData()
 		s.ClearLib()
+		s.deleteBuffer()
 	}
 	return s
 }
@@ -230,7 +248,7 @@ func (s *Storage) ImportDocs(path string, o ...bool) error {
 
 	var counter int
 	var data interface{}
-	s.UnsetBufferArray()
+	s.unsetBufferArray()
 
 	dec := yaml.NewDecoder(bytes.NewReader(impf))
 	for {
@@ -246,7 +264,7 @@ func (s *Storage) ImportDocs(path string, o ...bool) error {
 		if err.Error() == "EOF" {
 			break
 		}
-		s.UnsetBufferArray()
+		s.unsetBufferArray()
 		return wrapErr(err)
 	}
 
@@ -258,7 +276,7 @@ func (s *Storage) ImportDocs(path string, o ...bool) error {
 		}
 	}
 
-	for _, j := range s.GetAllBuffer() {
+	for _, j := range s.getAllBuffer() {
 		if j == nil {
 			continue
 		}
@@ -267,7 +285,7 @@ func (s *Storage) ImportDocs(path string, o ...bool) error {
 		}
 		s.PushData(*j)
 	}
-	s.UnsetBufferArray()
+	s.unsetBufferArray()
 	return s.stateReload()
 }
 
@@ -288,7 +306,7 @@ func (s *Storage) Read() error {
 	s.Lock()
 	defer s.Unlock()
 
-	s.UnsetBufferArray()
+	s.unsetBufferArray()
 
 	var data interface{}
 	dec := yaml.NewDecoder(bytes.NewReader(f))
@@ -303,19 +321,19 @@ func (s *Storage) Read() error {
 		if err.Error() == "EOF" {
 			break
 		}
-		s.UnsetBufferArray()
+		s.unsetBufferArray()
 		return wrapErr(err)
 	}
 
 	s.UnsetDataArray()
 
-	for _, j := range s.GetAllBuffer() {
+	for _, j := range s.getAllBuffer() {
 		if j == nil {
 			continue
 		}
 		s.PushData(*j)
 	}
-	s.UnsetBufferArray()
+	s.unsetBufferArray()
 	return nil
 }
 

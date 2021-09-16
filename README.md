@@ -289,6 +289,10 @@ We have 2 ways to name our documents
 
 ##### Name documents manually
 
+**Note:** If we use localfile instead of mem only, on read document names are reset. This is done currently to avoid pointer to
+doc missmatches. In the future we will use local state to keep this information between reads. A **Read** is triggered each time
+we run a write (Upsert/Delete) action or when we initialize the db.
+
 To name a document manually, we can use the **SetName** method which takes 2 arguments
 
 - name
@@ -304,6 +308,10 @@ if err != nil {
 ```
 
 ##### Name all documents automatically
+
+**Note:** If we use localfile instead of mem only, on read document names are reset. This is done currently to avoid pointer to
+doc missmatches. In the future we will use local state to keep this information between reads. A **Read** is triggered each time
+we run a write (Upsert/Delete) action or when we initialize the db.
 
 To name all documents automatically we need to ensure that the same path exists in all documents.
 
